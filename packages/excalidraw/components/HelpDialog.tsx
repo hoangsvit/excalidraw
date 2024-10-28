@@ -13,7 +13,7 @@ const Header = () => (
   <div className="HelpDialog__header">
     <a
       className="HelpDialog__btn"
-      href="https://docs.excalidraw.com"
+      href="javascipt:;"
       target="_blank"
       rel="noopener noreferrer"
     >
@@ -22,7 +22,7 @@ const Header = () => (
     </a>
     <a
       className="HelpDialog__btn"
-      href="https://blog.excalidraw.com"
+      href="https://eplus.dev"
       target="_blank"
       rel="noopener noreferrer"
     >
@@ -31,7 +31,7 @@ const Header = () => (
     </a>
     <a
       className="HelpDialog__btn"
-      href="https://github.com/excalidraw/excalidraw/issues"
+      href="https://github.com/hoangsvit/excalidraw/issues"
       target="_blank"
       rel="noopener noreferrer"
     >
