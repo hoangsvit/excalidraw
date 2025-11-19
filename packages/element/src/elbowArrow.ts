@@ -20,7 +20,6 @@ import {
   tupleToCoors,
   getSizeFromPoints,
   isDevEnv,
-  arrayToMap,
 } from "@excalidraw/common";
 
 import type { AppState } from "@excalidraw/excalidraw/types";
@@ -52,7 +51,7 @@ import {
   type NonDeletedSceneElementsMap,
 } from "./types";
 
-import { aabbForElement, pointInsideBounds } from "./bounds";
+import { aabbForElement, pointInsideBounds } from "./shapes";
 
 import type { Bounds } from "./bounds";
 import type { Heading } from "./heading";
@@ -358,12 +357,6 @@ const handleSegmentRelease = (
     null,
     null,
   );
-
-  if (!restoredPoints || restoredPoints.length < 2) {
-    throw new Error(
-      "Property 'points' is required in the update returned by normalizeArrowElementUpdate()",
-    );
-  }
 
   const nextPoints: GlobalPoint[] = [];
 
@@ -712,7 +705,7 @@ const handleEndpointDrag = (
   endGlobalPoint: GlobalPoint,
   hoveredStartElement: ExcalidrawBindableElement | null,
   hoveredEndElement: ExcalidrawBindableElement | null,
-): ElementUpdate<ExcalidrawElbowArrowElement> => {
+) => {
   let startIsSpecial = arrow.startIsSpecial ?? null;
   let endIsSpecial = arrow.endIsSpecial ?? null;
   const globalUpdatedPoints = updatedPoints.map((p, i) =>
@@ -747,15 +740,8 @@ const handleEndpointDrag = (
 
   // Calculate the moving second point connection and add the start point
   {
-    const secondPoint = globalUpdatedPoints.at(startIsSpecial ? 2 : 1);
-    const thirdPoint = globalUpdatedPoints.at(startIsSpecial ? 3 : 2);
-
-    if (!secondPoint || !thirdPoint) {
-      throw new Error(
-        `Second and third points must exist when handling endpoint drag (${startIsSpecial})`,
-      );
-    }
-
+    const secondPoint = globalUpdatedPoints[startIsSpecial ? 2 : 1];
+    const thirdPoint = globalUpdatedPoints[startIsSpecial ? 3 : 2];
     const startIsHorizontal = headingIsHorizontal(startHeading);
     const secondIsHorizontal = headingIsHorizontal(
       vectorToHeading(vectorFromPoint(secondPoint, thirdPoint)),
@@ -814,19 +800,10 @@ const handleEndpointDrag = (
 
   // Calculate the moving second to last point connection
   {
-    const secondToLastPoint = globalUpdatedPoints.at(
-      globalUpdatedPoints.length - (endIsSpecial ? 3 : 2),
-    );
-    const thirdToLastPoint = globalUpdatedPoints.at(
-      globalUpdatedPoints.length - (endIsSpecial ? 4 : 3),
-    );
-
-    if (!secondToLastPoint || !thirdToLastPoint) {
-      throw new Error(
-        `Second and third to last points must exist when handling endpoint drag (${endIsSpecial})`,
-      );
-    }
-
+    const secondToLastPoint =
+      globalUpdatedPoints[globalUpdatedPoints.length - (endIsSpecial ? 3 : 2)];
+    const thirdToLastPoint =
+      globalUpdatedPoints[globalUpdatedPoints.length - (endIsSpecial ? 4 : 3)];
     const endIsHorizontal = headingIsHorizontal(endHeading);
     const secondIsHorizontal = headingForPointIsHorizontal(
       thirdToLastPoint,
@@ -2093,7 +2070,16 @@ const normalizeArrowElementUpdate = (
   nextFixedSegments: readonly FixedSegment[] | null,
   startIsSpecial?: ExcalidrawElbowArrowElement["startIsSpecial"],
   endIsSpecial?: ExcalidrawElbowArrowElement["startIsSpecial"],
-): ElementUpdate<ExcalidrawElbowArrowElement> => {
+): {
+  points: LocalPoint[];
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  fixedSegments: readonly FixedSegment[] | null;
+  startIsSpecial?: ExcalidrawElbowArrowElement["startIsSpecial"];
+  endIsSpecial?: ExcalidrawElbowArrowElement["startIsSpecial"];
+} => {
   const offsetX = global[0][0];
   const offsetY = global[0][1];
   let points = global.map((p) =>
@@ -2222,12 +2208,20 @@ const getGlobalPoint = (
     return initialPoint;
   }
 
-  if (element) {
-    return getGlobalFixedPointForBindableElement(
+  if (element && elementsMap) {
+    const fixedGlobalPoint = getGlobalFixedPointForBindableElement(
       fixedPointRatio || [0, 0],
       element,
-      elementsMap ?? arrayToMap([element]),
+      elementsMap,
     );
+
+    // NOTE: Resize scales the binding position point too, so we need to update it
+    return Math.abs(
+      distanceToElement(element, elementsMap, fixedGlobalPoint) -
+        FIXED_BINDING_DISTANCE,
+    ) > 0.01
+      ? bindPointToSnapToElementOutline(arrow, element, startOrEnd, elementsMap)
+      : fixedGlobalPoint;
   }
 
   return initialPoint;

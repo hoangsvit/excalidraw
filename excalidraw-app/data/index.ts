@@ -258,16 +258,11 @@ export const loadScene = async (
       await importFromBackend(id, privateKey),
       localDataState?.appState,
       localDataState?.elements,
-      {
-        repairBindings: true,
-        refreshDimensions: false,
-        deleteInvisibleElements: true,
-      },
+      { repairBindings: true, refreshDimensions: false },
     );
   } else {
     data = restore(localDataState || null, null, null, {
       repairBindings: true,
-      deleteInvisibleElements: true,
     });
   }
 

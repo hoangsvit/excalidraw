@@ -21,9 +21,7 @@
     "copyStyles": "Стильдерді көшіру",
     "pasteStyles": "Стильдерді қою",
     "stroke": "",
-    "changeStroke": "",
     "background": "",
-    "changeBackground": "",
     "fill": "",
     "strokeWidth": "",
     "strokeStyle": "",
@@ -46,14 +44,6 @@
     "arrowhead_triangle_outline": "",
     "arrowhead_diamond": "",
     "arrowhead_diamond_outline": "",
-    "arrowhead_crowfoot_many": "",
-    "arrowhead_crowfoot_one": "",
-    "arrowhead_crowfoot_one_or_many": "",
-    "more_options": "",
-    "arrowtypes": "",
-    "arrowtype_sharp": "",
-    "arrowtype_round": "",
-    "arrowtype_elbowed": "",
     "fontSize": "Қаріп өлшемі",
     "fontFamily": "Қаріп тобы",
     "addWatermark": "",
@@ -82,7 +72,6 @@
     "canvasColors": "",
     "canvasBackground": "",
     "drawingCanvas": "",
-    "clearCanvas": "",
     "layers": "",
     "actions": "",
     "language": "Тіл",
@@ -95,13 +84,12 @@
     "group": "",
     "ungroup": "",
     "collaborators": "",
-    "toggleGrid": "",
+    "showGrid": "",
     "addToLibrary": "",
     "removeFromLibrary": "",
     "libraryLoadingMessage": "",
     "libraries": "",
     "loadingScene": "",
-    "loadScene": "",
     "align": "",
     "alignTop": "",
     "alignBottom": "",
@@ -117,9 +105,7 @@
     "share": "",
     "showStroke": "",
     "showBackground": "",
-    "showFonts": "",
     "toggleTheme": "",
-    "theme": "",
     "personalLib": "",
     "excalidrawLib": "",
     "decreaseFontSize": "",
@@ -131,19 +117,14 @@
       "edit": "",
       "editEmbed": "",
       "create": "",
+      "createEmbed": "",
       "label": "",
       "labelEmbed": "",
-      "empty": "",
-      "hint": "",
-      "goToElement": ""
+      "empty": ""
     },
     "lineEditor": {
       "edit": "",
-      "editArrow": ""
-    },
-    "polygon": {
-      "breakPolygon": "",
-      "convertToPolygon": ""
+      "exit": ""
     },
     "elementLock": {
       "lock": "",
@@ -157,46 +138,12 @@
     "removeAllElementsFromFrame": "",
     "eyeDropper": "",
     "textToDiagram": "",
-    "prompt": "",
-    "followUs": "",
-    "discordChat": "",
-    "zoomToFitViewport": "",
-    "zoomToFitSelection": "",
-    "zoomToFit": "",
-    "installPWA": "",
-    "autoResize": "",
-    "imageCropping": "",
-    "unCroppedDimension": "",
-    "copyElementLink": "",
-    "linkToElement": "",
-    "wrapSelectionInFrame": "",
-    "tab": "",
-    "shapeSwitch": ""
-  },
-  "elementLink": {
-    "title": "",
-    "desc": "",
-    "notFound": ""
+    "prompt": ""
   },
   "library": {
     "noItems": "",
     "hint_emptyLibrary": "",
-    "hint_emptyPrivateLibrary": "",
-    "search": {
-      "inputPlaceholder": "",
-      "heading": "",
-      "noResults": "",
-      "clearSearch": ""
-    }
-  },
-  "search": {
-    "title": "",
-    "noMatch": "",
-    "singleResult": "",
-    "multipleResults": "",
-    "placeholder": "",
-    "frames": "",
-    "texts": ""
+    "hint_emptyPrivateLibrary": ""
   },
   "buttons": {
     "clearReset": "",
@@ -204,7 +151,6 @@
     "exportImage": "",
     "export": "",
     "copyToClipboard": "",
-    "copyLink": "",
     "save": "",
     "saveAs": "",
     "load": "",
@@ -225,12 +171,10 @@
     "fullScreen": "",
     "darkMode": "",
     "lightMode": "",
-    "systemMode": "",
     "zenMode": "",
     "objectsSnapMode": "",
     "exitZenMode": "",
     "cancel": "",
-    "saveLibNames": "",
     "clear": "",
     "remove": "",
     "embed": "",
@@ -260,8 +204,7 @@
     "resetLibrary": "",
     "removeItemsFromsLibrary": "",
     "invalidEncryptionKey": "",
-    "collabOfflineWarning": "",
-    "localStorageQuotaExceeded": ""
+    "collabOfflineWarning": ""
   },
   "errors": {
     "unsupportedFileType": "",
@@ -269,9 +212,9 @@
     "fileTooBig": "Файл өте үлкен. Максималды рұқсат етілген көлем {{maxSize}}.",
     "svgImageInsertError": "",
     "failedToFetchImage": "",
+    "invalidSVGString": "",
     "cannotResolveCollabServer": "",
     "importLibraryError": "",
-    "saveLibraryError": "",
     "collabSaveFailed": "",
     "collabSaveFailed_sizeExceeded": "",
     "imageToolNotSupported": "",
@@ -292,7 +235,6 @@
   },
   "toolBar": {
     "selection": "",
-    "lasso": "",
     "image": "Суретті қою",
     "rectangle": "",
     "diamond": "",
@@ -313,23 +255,7 @@
     "hand": "",
     "extraTools": "",
     "mermaidToExcalidraw": "",
-    "convertElementType": ""
-  },
-  "element": {
-    "rectangle": "",
-    "diamond": "",
-    "ellipse": "",
-    "arrow": "",
-    "line": "",
-    "freedraw": "",
-    "text": "",
-    "image": "",
-    "group": "",
-    "frame": "",
-    "magicframe": "",
-    "embeddable": "",
-    "selection": "",
-    "iframe": ""
+    "magicSettings": ""
   },
   "headings": {
     "canvasActions": "",
@@ -337,10 +263,8 @@
     "shapes": ""
   },
   "hints": {
-    "dismissSearch": "",
     "canvasPanning": "",
     "linearElement": "",
-    "arrowTool": "",
     "freeDraw": "",
     "text": "",
     "embeddable": "",
@@ -352,18 +276,15 @@
     "resizeImage": "",
     "rotate": "",
     "lineEditor_info": "",
-    "lineEditor_line_info": "",
     "lineEditor_pointSelected": "",
     "lineEditor_nothingSelected": "",
+    "placeImage": "",
     "publishLibrary": "",
     "bindTextToElement": "",
-    "createFlowchart": "",
     "deepBoxSelect": "",
     "eraserRevert": "",
     "firefox_clipboard_write": "",
-    "disableSnapping": "",
-    "enterCropEditor": "",
-    "leaveCropEditor": ""
+    "disableSnapping": ""
   },
   "canvasError": {
     "cannotShowPreview": "",
@@ -377,9 +298,6 @@
     "trackedToSentry": "",
     "openIssueMessage": "",
     "sceneContent": ""
-  },
-  "shareDialog": {
-    "or": ""
   },
   "roomDialog": {
     "desc_intro": "",
@@ -410,8 +328,6 @@
     "click": "шерту",
     "deepSelect": "",
     "deepBoxSelect": "",
-    "createFlowchart": "",
-    "navigateFlowchart": "",
     "curvedArrow": "Майысқан нұсқар",
     "curvedLine": "Майысқан сызық",
     "documentation": "Құжаттама",
@@ -434,9 +350,7 @@
     "zoomToSelection": "Таңдалғанды үлкейту",
     "toggleElementLock": "",
     "movePageUpDown": "",
-    "movePageLeftRight": "",
-    "cropStart": "",
-    "cropFinish": ""
+    "movePageLeftRight": ""
   },
   "clearCanvasDialog": {
     "title": ""
@@ -507,15 +421,13 @@
   },
   "stats": {
     "angle": "Бұрыш",
-    "shapes": "",
+    "element": "Элемент",
+    "elements": "Элементтер",
     "height": "Биіктігі",
     "scene": "Сахна",
     "selected": "Таңдалды",
     "storage": "Сақтау көлемі",
-    "fullTitle": "",
     "title": "",
-    "generalStats": "",
-    "elementProperties": "",
     "total": "Барлығы",
     "version": "Нұсқа",
     "versionCopy": "Көшіру үшін басыңыз",
@@ -527,15 +439,13 @@
     "copyStyles": "Стильдер көшірілді.",
     "copyToClipboard": "",
     "copyToClipboardAsPng": "",
-    "copyToClipboardAsSvg": "",
     "fileSaved": "Файл сақталды.",
     "fileSavedToFilename": "{filename} сақталды",
     "canvas": "",
     "selection": "таңдау",
     "pasteAsSingleElement": "",
     "unableToEmbed": "",
-    "unrecognizedLinkFormat": "",
-    "elementLinkCopied": ""
+    "unrecognizedLinkFormat": ""
   },
   "colors": {
     "transparent": "",
@@ -568,7 +478,6 @@
     }
   },
   "colorPicker": {
-    "color": "",
     "mostUsedCustomColors": "",
     "colors": "",
     "shades": "",
@@ -612,53 +521,5 @@
     "description": "",
     "syntax": "",
     "preview": ""
-  },
-  "quickSearch": {
-    "placeholder": ""
-  },
-  "fontList": {
-    "badge": {
-      "old": ""
-    },
-    "sceneFonts": "",
-    "availableFonts": "",
-    "empty": ""
-  },
-  "userList": {
-    "empty": "",
-    "hint": {
-      "text": "",
-      "followStatus": "",
-      "inCall": "",
-      "micMuted": "",
-      "isSpeaking": ""
-    }
-  },
-  "commandPalette": {
-    "title": "",
-    "shortcuts": {
-      "select": "",
-      "confirm": "",
-      "close": ""
-    },
-    "recents": "",
-    "search": {
-      "placeholder": "",
-      "noMatch": ""
-    },
-    "itemNotAvailable": "",
-    "shortcutHint": ""
-  },
-  "keys": {
-    "ctrl": "",
-    "option": "",
-    "cmd": "",
-    "alt": "",
-    "escape": "",
-    "enter": "",
-    "shift": "",
-    "spacebar": "",
-    "delete": "",
-    "mmb": ""
   }
 }

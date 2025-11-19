@@ -60,11 +60,7 @@ describe("restoreElements", () => {
     const rectElement = API.createElement({ type: "rectangle" });
     mockSizeHelper.mockImplementation(() => true);
 
-    expect(
-      restore.restoreElements([rectElement], null, {
-        deleteInvisibleElements: true,
-      }),
-    ).toEqual([expect.objectContaining({ isDeleted: true })]);
+    expect(restore.restoreElements([rectElement], null).length).toBe(0);
   });
 
   it("should restore text element correctly passing value for each attribute", () => {
@@ -89,23 +85,6 @@ describe("restoreElements", () => {
     });
   });
 
-  it("should not delete empty text element when opts.deleteInvisibleElements is not defined", () => {
-    const textElement = API.createElement({
-      type: "text",
-      text: "",
-      isDeleted: false,
-    });
-
-    const restoredElements = restore.restoreElements([textElement], null);
-
-    expect(restoredElements).toEqual([
-      expect.objectContaining({
-        id: textElement.id,
-        isDeleted: false,
-      }),
-    ]);
-  });
-
   it("should restore text element correctly with unknown font family, null text and undefined alignment", () => {
     const textElement: any = API.createElement({
       type: "text",
@@ -118,9 +97,10 @@ describe("restoreElements", () => {
     textElement.font = "10 unknown";
 
     expect(textElement.isDeleted).toBe(false);
-    const restoredText = restore.restoreElements([textElement], null, {
-      deleteInvisibleElements: true,
-    })[0] as ExcalidrawTextElement;
+    const restoredText = restore.restoreElements(
+      [textElement],
+      null,
+    )[0] as ExcalidrawTextElement;
     expect(restoredText.isDeleted).toBe(true);
     expect(restoredText).toMatchSnapshot({
       seed: expect.any(Number),
@@ -197,16 +177,13 @@ describe("restoreElements", () => {
       y: 0,
     });
 
-    const restoredElements = restore.restoreElements([arrowElement], null, {
-      deleteInvisibleElements: true,
-    });
+    const restoredElements = restore.restoreElements([arrowElement], null);
 
     const restoredArrow = restoredElements[0] as
       | ExcalidrawArrowElement
       | undefined;
 
-    expect(restoredArrow).not.toBeUndefined();
-    expect(restoredArrow?.isDeleted).toBe(true);
+    expect(restoredArrow).toBeUndefined();
   });
 
   it("should keep 'imperceptibly' small freedraw/line elements", () => {
@@ -871,18 +848,12 @@ describe("repairing bindings", () => {
     let restoredElements = restore.restoreElements(
       [container, invisibleBoundElement, boundElement],
       null,
-      { deleteInvisibleElements: true },
     );
 
     expect(restoredElements).toEqual([
       expect.objectContaining({
         id: container.id,
         boundElements: [obsoleteBinding, invisibleBinding, nonExistentBinding],
-      }),
-      expect.objectContaining({
-        id: invisibleBoundElement.id,
-        containerId: container.id,
-        isDeleted: true,
       }),
       expect.objectContaining({
         id: boundElement.id,
@@ -893,18 +864,13 @@ describe("repairing bindings", () => {
     restoredElements = restore.restoreElements(
       [container, invisibleBoundElement, boundElement],
       null,
-      { repairBindings: true, deleteInvisibleElements: true },
+      { repairBindings: true },
     );
 
     expect(restoredElements).toEqual([
       expect.objectContaining({
         id: container.id,
         boundElements: [],
-      }),
-      expect.objectContaining({
-        id: invisibleBoundElement.id,
-        containerId: container.id,
-        isDeleted: true,
       }),
       expect.objectContaining({
         id: boundElement.id,

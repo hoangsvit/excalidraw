@@ -33,7 +33,6 @@ const ExcalidrawScope = {
   initialData,
   useI18n: ExcalidrawComp.useI18n,
   convertToExcalidrawElements: ExcalidrawComp.convertToExcalidrawElements,
-  CaptureUpdateAction: ExcalidrawComp.CaptureUpdateAction,
 };
 
 export default ExcalidrawScope;

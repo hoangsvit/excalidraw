@@ -10,7 +10,7 @@ import type { SvgCache } from "../hooks/useLibraryItemSvg";
 import type { LibraryItem } from "../types";
 import type { ReactNode } from "react";
 
-type LibraryOrPendingItem = readonly (
+type LibraryOrPendingItem = (
   | LibraryItem
   | /* pending library item */ {
       id: null;

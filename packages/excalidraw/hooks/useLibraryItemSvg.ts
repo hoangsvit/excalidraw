@@ -28,7 +28,6 @@ export const useLibraryItemSvg = (
   id: LibraryItem["id"] | null,
   elements: LibraryItem["elements"] | undefined,
   svgCache: SvgCache,
-  ref: React.RefObject<HTMLDivElement | null>,
 ): SVGSVGElement | undefined => {
   const [svg, setSvg] = useState<SVGSVGElement>();
 
@@ -62,22 +61,6 @@ export const useLibraryItemSvg = (
       }
     }
   }, [id, elements, svgCache, setSvg]);
-
-  useEffect(() => {
-    const node = ref.current;
-
-    if (!node) {
-      return;
-    }
-
-    if (svg) {
-      node.innerHTML = svg.outerHTML;
-    }
-
-    return () => {
-      node.innerHTML = "";
-    };
-  }, [svg, ref]);
 
   return svg;
 };

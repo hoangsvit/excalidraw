@@ -13,15 +13,16 @@ import {
   FRAME_STYLE,
   invariant,
   THEME,
+  throttleRAF,
 } from "@excalidraw/common";
 
 import { FIXED_BINDING_DISTANCE, maxBindingGap } from "@excalidraw/element";
 import { LinearElementEditor } from "@excalidraw/element";
 import {
-  getOmitSidesForEditorInterface,
+  getOmitSidesForDevice,
   getTransformHandles,
   getTransformHandlesFromCoords,
-  hasBoundingBox,
+  shouldShowBoundingBox,
 } from "@excalidraw/element";
 import {
   isElbowArrow,
@@ -117,8 +118,7 @@ const renderLinearElementPointHighlight = (
 ) => {
   const { elementId, hoverPointIndex } = appState.selectedLinearElement!;
   if (
-    appState.selectedLinearElement?.isEditing &&
-    appState.selectedLinearElement?.selectedPointsIndices?.includes(
+    appState.editingLinearElement?.selectedPointsIndices?.includes(
       hoverPointIndex,
     )
   ) {
@@ -180,7 +180,7 @@ const renderSingleLinearPoint = <Point extends GlobalPoint | LocalPoint>(
     point[0],
     point[1],
     (isOverlappingPoint
-      ? radius * (appState.selectedLinearElement?.isEditing ? 1.5 : 2)
+      ? radius * (appState.editingLinearElement ? 1.5 : 2)
       : radius) / appState.zoom.value,
     !isPhantomPoint,
     !isOverlappingPoint || isSelected,
@@ -205,15 +205,10 @@ const renderBindingHighlightForBindableElement = (
     case "embeddable":
     case "frame":
     case "magicframe":
-      drawHighlightForRectWithRotation(context, element, elementsMap, padding);
+      drawHighlightForRectWithRotation(context, element, padding);
       break;
     case "diamond":
-      drawHighlightForDiamondWithRotation(
-        context,
-        padding,
-        element,
-        elementsMap,
-      );
+      drawHighlightForDiamondWithRotation(context, padding, element);
       break;
     case "ellipse": {
       const [x1, y1, x2, y2] = getElementAbsoluteCoords(element, elementsMap);
@@ -448,7 +443,7 @@ const renderLinearPointHandles = (
   );
 
   const { POINT_HANDLE_SIZE } = LinearElementEditor;
-  const radius = appState.selectedLinearElement?.isEditing
+  const radius = appState.editingLinearElement
     ? POINT_HANDLE_SIZE
     : POINT_HANDLE_SIZE / 2;
 
@@ -470,8 +465,7 @@ const renderLinearPointHandles = (
       );
 
     let isSelected =
-      !!appState.selectedLinearElement?.isEditing &&
-      !!appState.selectedLinearElement?.selectedPointsIndices?.includes(idx);
+      !!appState.editingLinearElement?.selectedPointsIndices?.includes(idx);
     // when element is a polygon, highlight the last point as well if first
     // point is selected since they overlap and the last point tends to be
     // rendered on top
@@ -480,8 +474,7 @@ const renderLinearPointHandles = (
       element.polygon &&
       !isSelected &&
       idx === element.points.length - 1 &&
-      !!appState.selectedLinearElement?.isEditing &&
-      !!appState.selectedLinearElement?.selectedPointsIndices?.includes(0)
+      !!appState.editingLinearElement?.selectedPointsIndices?.includes(0)
     ) {
       isSelected = true;
     }
@@ -537,7 +530,7 @@ const renderLinearPointHandles = (
     );
 
     midPoints.forEach((segmentMidPoint) => {
-      if (appState.selectedLinearElement?.isEditing || points.length === 2) {
+      if (appState.editingLinearElement || points.length === 2) {
         renderSingleLinearPoint(
           context,
           appState,
@@ -733,15 +726,8 @@ const _renderInteractiveScene = ({
   scale,
   appState,
   renderConfig,
-  editorInterface,
-  animationState,
-  deltaTime,
-}: InteractiveSceneRenderConfig): {
-  scrollBars?: ReturnType<typeof getScrollBars>;
-  atLeastOneVisibleElement: boolean;
-  elementsMap: RenderableElementsMap;
-  animationState?: typeof animationState;
-} => {
+  device,
+}: InteractiveSceneRenderConfig) => {
   if (canvas === null) {
     return { atLeastOneVisibleElement: false, elementsMap };
   }
@@ -750,8 +736,6 @@ const _renderInteractiveScene = ({
     canvas,
     scale,
   );
-
-  const nextAnimationState = animationState;
 
   const context = bootstrapCanvas({
     canvas,
@@ -771,10 +755,7 @@ const _renderInteractiveScene = ({
     // Getting the element using LinearElementEditor during collab mismatches version - being one head of visible elements due to
     // ShapeCache returns empty hence making sure that we get the
     // correct element from visible elements
-    if (
-      appState.selectedLinearElement?.isEditing &&
-      appState.selectedLinearElement.elementId === element.id
-    ) {
+    if (appState.editingLinearElement?.elementId === element.id) {
       if (element) {
         editingLinearElement = element as NonDeleted<ExcalidrawLinearElement>;
       }
@@ -867,8 +848,7 @@ const _renderInteractiveScene = ({
   // correct element from visible elements
   if (
     selectedElements.length === 1 &&
-    appState.selectedLinearElement?.isEditing &&
-    appState.selectedLinearElement.elementId === selectedElements[0].id
+    appState.editingLinearElement?.elementId === selectedElements[0].id
   ) {
     renderLinearPointHandles(
       context,
@@ -899,12 +879,8 @@ const _renderInteractiveScene = ({
   }
 
   // Paint selected elements
-  if (!appState.multiElement && !appState.selectedLinearElement?.isEditing) {
-    const showBoundingBox = hasBoundingBox(
-      selectedElements,
-      appState,
-      editorInterface,
-    );
+  if (!appState.multiElement && !appState.editingLinearElement) {
+    const showBoundingBox = shouldShowBoundingBox(selectedElements, appState);
 
     const isSingleLinearElementSelected =
       selectedElements.length === 1 && isLinearElement(selectedElements[0]);
@@ -1036,7 +1012,7 @@ const _renderInteractiveScene = ({
         appState.zoom,
         elementsMap,
         "mouse", // when we render we don't know which pointer type so use mouse,
-        getOmitSidesForEditorInterface(editorInterface),
+        getOmitSidesForDevice(device),
       );
       if (
         !appState.viewModeEnabled &&
@@ -1100,11 +1076,8 @@ const _renderInteractiveScene = ({
         appState.zoom,
         "mouse",
         isFrameSelected
-          ? {
-              ...getOmitSidesForEditorInterface(editorInterface),
-              rotation: true,
-            }
-          : getOmitSidesForEditorInterface(editorInterface),
+          ? { ...getOmitSidesForDevice(device), rotation: true }
+          : getOmitSidesForDevice(device),
       );
       if (selectedElements.some((element) => !element.locked)) {
         renderTransformHandles(
@@ -1206,9 +1179,17 @@ const _renderInteractiveScene = ({
     scrollBars,
     atLeastOneVisibleElement: visibleElements.length > 0,
     elementsMap,
-    animationState: nextAnimationState,
   };
 };
+
+/** throttled to animation framerate */
+export const renderInteractiveSceneThrottled = throttleRAF(
+  (config: InteractiveSceneRenderConfig) => {
+    const ret = _renderInteractiveScene(config);
+    config.callback?.(ret);
+  },
+  { trailing: true },
+);
 
 /**
  * Interactive scene is the ui-canvas where we render bounding boxes, selections
@@ -1216,10 +1197,16 @@ const _renderInteractiveScene = ({
  */
 export const renderInteractiveScene = <
   U extends typeof _renderInteractiveScene,
+  T extends boolean = false,
 >(
   renderConfig: InteractiveSceneRenderConfig,
-): ReturnType<U> => {
+  throttle?: T,
+): T extends true ? void : ReturnType<U> => {
+  if (throttle) {
+    renderInteractiveSceneThrottled(renderConfig);
+    return undefined as T extends true ? void : ReturnType<U>;
+  }
   const ret = _renderInteractiveScene(renderConfig);
   renderConfig.callback(ret);
-  return ret as ReturnType<U>;
+  return ret as T extends true ? void : ReturnType<U>;
 };

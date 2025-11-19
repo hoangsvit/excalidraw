@@ -18,7 +18,7 @@ type LockIconProps = {
 export const HandButton = (props: LockIconProps) => {
   return (
     <ToolButton
-      className={clsx("Shape", { fillable: false, active: props.checked })}
+      className={clsx("Shape", { fillable: false })}
       type="radio"
       icon={handIcon}
       name="editor-current-shape"

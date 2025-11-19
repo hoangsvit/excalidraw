@@ -1,5 +1,4 @@
 import * as Popover from "@radix-ui/react-popover";
-import clsx from "clsx";
 import React, { useCallback, useMemo } from "react";
 
 import { FONT_FAMILY } from "@excalidraw/common";
@@ -59,7 +58,6 @@ interface FontPickerProps {
   onHover: (fontFamily: FontFamilyValues) => void;
   onLeave: () => void;
   onPopupChange: (open: boolean) => void;
-  compactMode?: boolean;
 }
 
 export const FontPicker = React.memo(
@@ -71,7 +69,6 @@ export const FontPicker = React.memo(
     onHover,
     onLeave,
     onPopupChange,
-    compactMode = false,
   }: FontPickerProps) => {
     const defaultFonts = useMemo(() => DEFAULT_FONTS, []);
     const onSelectCallback = useCallback(
@@ -84,30 +81,18 @@ export const FontPicker = React.memo(
     );
 
     return (
-      <div
-        role="dialog"
-        aria-modal="true"
-        className={clsx("FontPicker__container", {
-          "FontPicker__container--compact": compactMode,
-        })}
-      >
-        {!compactMode && (
-          <div className="buttonList">
-            <RadioSelection<FontFamilyValues | false>
-              type="button"
-              options={defaultFonts}
-              value={selectedFontFamily}
-              onClick={onSelectCallback}
-            />
-          </div>
-        )}
-        {!compactMode && <ButtonSeparator />}
-        <Popover.Root open={isOpened} onOpenChange={onPopupChange}>
-          <FontPickerTrigger
-            selectedFontFamily={selectedFontFamily}
-            isOpened={isOpened}
-            compactMode={compactMode}
+      <div role="dialog" aria-modal="true" className="FontPicker__container">
+        <div className="buttonList">
+          <RadioSelection<FontFamilyValues | false>
+            type="button"
+            options={defaultFonts}
+            value={selectedFontFamily}
+            onClick={onSelectCallback}
           />
+        </div>
+        <ButtonSeparator />
+        <Popover.Root open={isOpened} onOpenChange={onPopupChange}>
+          <FontPickerTrigger selectedFontFamily={selectedFontFamily} />
           {isOpened && (
             <FontPickerList
               selectedFontFamily={selectedFontFamily}

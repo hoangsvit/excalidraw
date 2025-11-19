@@ -1,8 +1,8 @@
-import { THEME, THEME_FILTER } from "@excalidraw/common";
+import { elementCenterPoint, THEME, THEME_FILTER } from "@excalidraw/common";
 
 import { FIXED_BINDING_DISTANCE } from "@excalidraw/element";
 import { getDiamondPoints } from "@excalidraw/element";
-import { elementCenterPoint, getCornerRadius } from "@excalidraw/element";
+import { getCornerRadius } from "@excalidraw/element";
 
 import {
   curve,
@@ -16,7 +16,6 @@ import {
 } from "@excalidraw/math";
 
 import type {
-  ElementsMap,
   ExcalidrawDiamondElement,
   ExcalidrawRectanguloidElement,
 } from "@excalidraw/element/types";
@@ -129,12 +128,14 @@ function drawCatmullRomCubicApprox(
 export const drawHighlightForRectWithRotation = (
   context: CanvasRenderingContext2D,
   element: ExcalidrawRectanguloidElement,
-  elementsMap: ElementsMap,
   padding: number,
 ) => {
   const [x, y] = pointRotateRads(
     pointFrom<GlobalPoint>(element.x, element.y),
-    elementCenterPoint(element, elementsMap),
+    elementCenterPoint(
+      element,
+      window.h.app.scene.getElementsMapIncludingDeleted(),
+    ),
     element.angle,
   );
 
@@ -288,11 +289,13 @@ export const drawHighlightForDiamondWithRotation = (
   context: CanvasRenderingContext2D,
   padding: number,
   element: ExcalidrawDiamondElement,
-  elementsMap: ElementsMap,
 ) => {
   const [x, y] = pointRotateRads(
     pointFrom<GlobalPoint>(element.x, element.y),
-    elementCenterPoint(element, elementsMap),
+    elementCenterPoint(
+      element,
+      window.h.app.scene.getElementsMapIncludingDeleted(),
+    ),
     element.angle,
   );
   context.save();

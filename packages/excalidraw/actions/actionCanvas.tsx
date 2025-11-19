@@ -7,6 +7,7 @@ import {
   MIN_ZOOM,
   THEME,
   ZOOM_STEP,
+  getShortcutKey,
   updateActiveTool,
   CODES,
   KEYS,
@@ -45,7 +46,6 @@ import { t } from "../i18n";
 import { getNormalizedZoom } from "../scene";
 import { centerScrollOn } from "../scene/scroll";
 import { getStateForZoom } from "../scene/zoom";
-import { getShortcutKey } from "../shortcut";
 
 import { register } from "./register";
 
@@ -69,7 +69,7 @@ export const actionChangeViewBackgroundColor = register({
         : CaptureUpdateAction.EVENTUALLY,
     };
   },
-  PanelComponent: ({ elements, appState, updateData, appProps, data }) => {
+  PanelComponent: ({ elements, appState, updateData, appProps }) => {
     // FIXME move me to src/components/mainMenu/DefaultItems.tsx
     return (
       <ColorPicker
@@ -121,10 +121,7 @@ export const actionClearCanvas = register({
         pasteDialog: appState.pasteDialog,
         activeTool:
           appState.activeTool.type === "image"
-            ? {
-                ...appState.activeTool,
-                type: app.state.preferredSelectionTool.type,
-              }
+            ? { ...appState.activeTool, type: "selection" }
             : appState.activeTool,
       },
       captureUpdate: CaptureUpdateAction.IMMEDIATELY,
@@ -497,13 +494,13 @@ export const actionToggleEraserTool = register({
   name: "toggleEraserTool",
   label: "toolBar.eraser",
   trackEvent: { category: "toolbar" },
-  perform: (elements, appState, _, app) => {
+  perform: (elements, appState) => {
     let activeTool: AppState["activeTool"];
 
     if (isEraserActive(appState)) {
       activeTool = updateActiveTool(appState, {
         ...(appState.activeTool.lastActiveTool || {
-          type: app.state.preferredSelectionTool.type,
+          type: "selection",
         }),
         lastActiveToolBeforeEraser: null,
       });
@@ -533,9 +530,6 @@ export const actionToggleLassoTool = register({
   label: "toolBar.lasso",
   icon: LassoIcon,
   trackEvent: { category: "toolbar" },
-  predicate: (elements, appState, props, app) => {
-    return app.state.preferredSelectionTool.type !== "lasso";
-  },
   perform: (elements, appState, _, app) => {
     let activeTool: AppState["activeTool"];
 

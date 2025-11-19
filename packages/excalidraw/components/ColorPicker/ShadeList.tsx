@@ -16,15 +16,9 @@ interface ShadeListProps {
   color: string | null;
   onChange: (color: string) => void;
   palette: ColorPaletteCustom;
-  showHotKey?: boolean;
 }
 
-export const ShadeList = ({
-  color,
-  onChange,
-  palette,
-  showHotKey,
-}: ShadeListProps) => {
+export const ShadeList = ({ color, onChange, palette }: ShadeListProps) => {
   const colorObj = getColorNameAndShadeFromColor({
     color: color || "transparent",
     palette,
@@ -73,9 +67,7 @@ export const ShadeList = ({
               }}
             >
               <div className="color-picker__button-outline" />
-              {showHotKey && (
-                <HotkeyLabel color={color} keyLabel={i + 1} isShade />
-              )}
+              <HotkeyLabel color={color} keyLabel={i + 1} isShade />
             </button>
           ))}
         </div>

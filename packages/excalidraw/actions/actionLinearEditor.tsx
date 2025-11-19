@@ -1,14 +1,12 @@
+import { LinearElementEditor } from "@excalidraw/element";
 import {
   isElbowArrow,
   isLinearElement,
   isLineElement,
 } from "@excalidraw/element";
-import { arrayToMap, invariant } from "@excalidraw/common";
+import { arrayToMap } from "@excalidraw/common";
 
-import {
-  toggleLinePolygonState,
-  CaptureUpdateAction,
-} from "@excalidraw/element";
+import { CaptureUpdateAction } from "@excalidraw/element";
 
 import type {
   ExcalidrawLinearElement,
@@ -23,6 +21,8 @@ import { t } from "../i18n";
 import { ButtonIcon } from "../components/ButtonIcon";
 
 import { newElementWith } from "../../element/src/mutateElement";
+
+import { toggleLinePolygonState } from "../../element/src/shapes";
 
 import { register } from "./register";
 
@@ -45,7 +45,7 @@ export const actionToggleLinearEditor = register({
   predicate: (elements, appState, _, app) => {
     const selectedElements = app.scene.getSelectedElements(appState);
     if (
-      !appState.selectedLinearElement?.isEditing &&
+      !appState.editingLinearElement &&
       selectedElements.length === 1 &&
       isLinearElement(selectedElements[0]) &&
       !isElbowArrow(selectedElements[0])
@@ -60,25 +60,14 @@ export const actionToggleLinearEditor = register({
       includeBoundTextElement: true,
     })[0] as ExcalidrawLinearElement;
 
-    invariant(selectedElement, "No selected element found");
-    invariant(
-      appState.selectedLinearElement,
-      "No selected linear element found",
-    );
-    invariant(
-      selectedElement.id === appState.selectedLinearElement.elementId,
-      "Selected element ID and linear editor elementId does not match",
-    );
-
-    const selectedLinearElement = {
-      ...appState.selectedLinearElement,
-      isEditing: !appState.selectedLinearElement.isEditing,
-    };
-
+    const editingLinearElement =
+      appState.editingLinearElement?.elementId === selectedElement.id
+        ? null
+        : new LinearElementEditor(selectedElement, arrayToMap(elements));
     return {
       appState: {
         ...appState,
-        selectedLinearElement,
+        editingLinearElement,
       },
       captureUpdate: CaptureUpdateAction.IMMEDIATELY,
     };
@@ -87,10 +76,6 @@ export const actionToggleLinearEditor = register({
     const selectedElement = app.scene.getSelectedElements({
       selectedElementIds: appState.selectedElementIds,
     })[0] as ExcalidrawLinearElement;
-
-    if (!selectedElement) {
-      return null;
-    }
 
     const label = t(
       selectedElement.type === "arrow"

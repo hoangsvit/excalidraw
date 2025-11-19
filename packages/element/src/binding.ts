@@ -6,6 +6,7 @@ import {
   invariant,
   isDevEnv,
   isTestEnv,
+  elementCenterPoint,
 } from "@excalidraw/common";
 
 import {
@@ -33,9 +34,9 @@ import type { AppState } from "@excalidraw/excalidraw/types";
 import type { MapEntry, Mutable } from "@excalidraw/common/utility-types";
 
 import {
-  doBoundsIntersect,
   getCenterForBounds,
   getElementBounds,
+  doBoundsIntersect,
 } from "./bounds";
 import { intersectElementWithLineSegment } from "./collision";
 import { distanceToElement } from "./distance";
@@ -60,7 +61,7 @@ import {
   isTextElement,
 } from "./typeChecks";
 
-import { aabbForElement, elementCenterPoint } from "./bounds";
+import { aabbForElement } from "./shapes";
 import { updateElbowArrowPoints } from "./elbowArrow";
 
 import type { Scene } from "./Scene";
@@ -384,48 +385,6 @@ export const getSuggestedBindingsForArrows = (
   );
 };
 
-export const maybeSuggestBindingsForLinearElementAtCoords = (
-  linearElement: NonDeleted<ExcalidrawLinearElement>,
-  /** scene coords */
-  pointerCoords: {
-    x: number;
-    y: number;
-  }[],
-  scene: Scene,
-  zoom: AppState["zoom"],
-  // During line creation the start binding hasn't been written yet
-  // into `linearElement`
-  oppositeBindingBoundElement?: ExcalidrawBindableElement | null,
-): ExcalidrawBindableElement[] =>
-  Array.from(
-    pointerCoords.reduce(
-      (acc: Set<NonDeleted<ExcalidrawBindableElement>>, coords) => {
-        const hoveredBindableElement = getHoveredElementForBinding(
-          coords,
-          scene.getNonDeletedElements(),
-          scene.getNonDeletedElementsMap(),
-          zoom,
-          isElbowArrow(linearElement),
-          isElbowArrow(linearElement),
-        );
-
-        if (
-          hoveredBindableElement != null &&
-          !isLinearElementSimpleAndAlreadyBound(
-            linearElement,
-            oppositeBindingBoundElement?.id,
-            hoveredBindableElement,
-          )
-        ) {
-          acc.add(hoveredBindableElement);
-        }
-
-        return acc;
-      },
-      new Set() as Set<NonDeleted<ExcalidrawBindableElement>>,
-    ),
-  );
-
 export const maybeBindLinearElement = (
   linearElement: NonDeleted<ExcalidrawLinearElement>,
   appState: AppState,
@@ -555,7 +514,7 @@ export const isLinearElementSimpleAndAlreadyBound = (
 
 const isLinearElementSimple = (
   linearElement: NonDeleted<ExcalidrawLinearElement>,
-): boolean => linearElement.points.length < 3 && !isElbowArrow(linearElement);
+): boolean => linearElement.points.length < 3;
 
 const unbindLinearElement = (
   linearElement: NonDeleted<ExcalidrawLinearElement>,
@@ -999,29 +958,6 @@ export const bindPointToSnapToElementOutline = (
       intersector,
       FIXED_BINDING_DISTANCE,
     ).sort(pointDistanceSq)[0];
-
-    if (!intersection) {
-      const anotherPoint = pointFrom<GlobalPoint>(
-        !isHorizontal ? center[0] : snapPoint[0],
-        isHorizontal ? center[1] : snapPoint[1],
-      );
-      const anotherIntersector = lineSegment(
-        anotherPoint,
-        pointFromVector(
-          vectorScale(
-            vectorNormalize(vectorFromPoint(snapPoint, anotherPoint)),
-            Math.max(bindableElement.width, bindableElement.height) * 2,
-          ),
-          anotherPoint,
-        ),
-      );
-      intersection = intersectElementWithLineSegment(
-        bindableElement,
-        elementsMap,
-        anotherIntersector,
-        FIXED_BINDING_DISTANCE,
-      ).sort(pointDistanceSq)[0];
-    }
   } else {
     intersection = intersectElementWithLineSegment(
       bindableElement,

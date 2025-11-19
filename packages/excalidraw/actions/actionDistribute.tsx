@@ -2,15 +2,13 @@ import { getNonDeletedElements } from "@excalidraw/element";
 
 import { isFrameLikeElement } from "@excalidraw/element";
 
-import { CODES, KEYS, arrayToMap } from "@excalidraw/common";
+import { CODES, KEYS, arrayToMap, getShortcutKey } from "@excalidraw/common";
 
 import { updateFrameMembershipOfSelectedElements } from "@excalidraw/element";
 
 import { distributeElements } from "@excalidraw/element";
 
 import { CaptureUpdateAction } from "@excalidraw/element";
-
-import { getSelectedElementsByGroup } from "@excalidraw/element";
 
 import type { ExcalidrawElement } from "@excalidraw/element/types";
 
@@ -26,8 +24,6 @@ import { t } from "../i18n";
 
 import { isSomeElementSelected } from "../scene";
 
-import { getShortcutKey } from "../shortcut";
-
 import { register } from "./register";
 
 import type { AppClassProperties, AppState } from "../types";
@@ -35,11 +31,7 @@ import type { AppClassProperties, AppState } from "../types";
 const enableActionGroup = (appState: AppState, app: AppClassProperties) => {
   const selectedElements = app.scene.getSelectedElements(appState);
   return (
-    getSelectedElementsByGroup(
-      selectedElements,
-      app.scene.getNonDeletedElementsMap(),
-      appState as Readonly<AppState>,
-    ).length > 2 &&
+    selectedElements.length > 1 &&
     // TODO enable distributing frames when implemented properly
     !selectedElements.some((el) => isFrameLikeElement(el))
   );
@@ -57,7 +49,6 @@ const distributeSelectedElements = (
     selectedElements,
     app.scene.getNonDeletedElementsMap(),
     distribution,
-    appState,
   );
 
   const updatedElementsMap = arrayToMap(updatedElements);

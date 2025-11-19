@@ -254,7 +254,9 @@ describe("textWysiwyg", () => {
     beforeEach(async () => {
       await render(<Excalidraw handleKeyboardGlobally={true} />);
       // @ts-ignore
-      h.app.refreshEditorInterface();
+      h.app.refreshViewportBreakpoints();
+      // @ts-ignore
+      h.app.refreshEditorBreakpoints();
 
       API.setElements([]);
     });
@@ -361,7 +363,9 @@ describe("textWysiwyg", () => {
     beforeEach(async () => {
       await render(<Excalidraw handleKeyboardGlobally={true} />);
       // @ts-ignore
-      h.app.refreshEditorInterface();
+      h.app.refreshViewportBreakpoints();
+      // @ts-ignore
+      h.app.refreshEditorBreakpoints();
 
       textElement = UI.createElement("text");
 
@@ -1194,11 +1198,7 @@ describe("textWysiwyg", () => {
       updateTextEditor(editor, "   ");
       Keyboard.exitTextEditor(editor);
       expect(rectangle.boundElements).toStrictEqual([]);
-      expect(h.elements[1]).toEqual(
-        expect.objectContaining({
-          isDeleted: true,
-        }),
-      );
+      expect(h.elements[1].isDeleted).toBe(true);
     });
 
     it("should restore original container height and clear cache once text is unbind", async () => {

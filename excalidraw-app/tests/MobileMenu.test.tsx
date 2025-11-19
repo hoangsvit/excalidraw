@@ -17,15 +17,30 @@ describe("Test MobileMenu", () => {
 
   beforeEach(async () => {
     await render(<ExcalidrawApp />);
-    h.app.refreshEditorInterface();
+    // @ts-ignore
+    h.app.refreshViewportBreakpoints();
+    // @ts-ignore
+    h.app.refreshEditorBreakpoints();
   });
 
   afterAll(() => {
     restoreOriginalGetBoundingClientRect();
   });
 
-  it("should set editor interface correctly", () => {
-    expect(h.app.editorInterface.formFactor).toBe("phone");
+  it("should set device correctly", () => {
+    expect(h.app.device).toMatchInlineSnapshot(`
+      {
+        "editor": {
+          "canFitSidebar": false,
+          "isMobile": true,
+        },
+        "isTouchScreen": false,
+        "viewport": {
+          "isLandscape": false,
+          "isMobile": true,
+        },
+      }
+    `);
   });
 
   it("should initialize with welcome screen and hide once user interacts", async () => {

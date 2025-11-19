@@ -3,8 +3,6 @@ import { unstable_batchedUpdates } from "react-dom";
 
 import { KEYS, queryFocusableElements } from "@excalidraw/common";
 
-import clsx from "clsx";
-
 import "./Popover.scss";
 
 type Props = {
@@ -17,7 +15,6 @@ type Props = {
   offsetTop?: number;
   viewportWidth?: number;
   viewportHeight?: number;
-  className?: string;
 };
 
 export const Popover = ({
@@ -30,7 +27,6 @@ export const Popover = ({
   offsetTop = 0,
   viewportWidth = window.innerWidth,
   viewportHeight = window.innerHeight,
-  className,
 }: Props) => {
   const popoverRef = useRef<HTMLDivElement>(null);
 
@@ -150,7 +146,7 @@ export const Popover = ({
   }, [onCloseRequest]);
 
   return (
-    <div className={clsx("popover", className)} ref={popoverRef} tabIndex={-1}>
+    <div className="popover" ref={popoverRef} tabIndex={-1}>
       {children}
     </div>
   );
