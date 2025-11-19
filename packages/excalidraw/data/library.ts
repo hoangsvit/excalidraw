@@ -62,7 +62,6 @@ type LibraryUpdate = {
   deletedItems: Map<LibraryItem["id"], LibraryItem>;
   /** newly added items in the library */
   addedItems: Map<LibraryItem["id"], LibraryItem>;
-  updatedItems: Map<LibraryItem["id"], LibraryItem>;
 };
 
 // an object so that we can later add more properties to it without breaking,
@@ -171,7 +170,6 @@ const createLibraryUpdate = (
   const update: LibraryUpdate = {
     deletedItems: new Map<LibraryItem["id"], LibraryItem>(),
     addedItems: new Map<LibraryItem["id"], LibraryItem>(),
-    updatedItems: new Map<LibraryItem["id"], LibraryItem>(),
   };
 
   for (const item of prevLibraryItems) {
@@ -183,11 +181,8 @@ const createLibraryUpdate = (
   const prevItemsMap = arrayToMap(prevLibraryItems);
 
   for (const item of nextLibraryItems) {
-    const prevItem = prevItemsMap.get(item.id);
-    if (!prevItem) {
+    if (!prevItemsMap.has(item.id)) {
       update.addedItems.set(item.id, item);
-    } else if (getLibraryItemHash(prevItem) !== getLibraryItemHash(item)) {
-      update.updatedItems.set(item.id, item);
     }
   }
 
@@ -197,7 +192,6 @@ const createLibraryUpdate = (
 class Library {
   /** latest libraryItems */
   private currLibraryItems: LibraryItems = [];
-
   /** snapshot of library items since last onLibraryChange call */
   private prevLibraryItems = cloneLibraryItems(this.currLibraryItems);
 
@@ -591,14 +585,12 @@ class AdapterTransaction {
 let lastSavedLibraryItemsHash = 0;
 let librarySaveCounter = 0;
 
-const getLibraryItemHash = (item: LibraryItem) => {
-  return `${item.id}:${item.name || ""}:${hashElementsVersion(item.elements)}`;
-};
-
 export const getLibraryItemsHash = (items: LibraryItems) => {
   return hashString(
     items
-      .map((item) => getLibraryItemHash(item))
+      .map((item) => {
+        return `${item.id}:${hashElementsVersion(item.elements)}`;
+      })
       .sort()
       .join(),
   );
@@ -645,13 +637,6 @@ const persistLibraryUpdate = async (
           // in DB to preserve the ordering we do in editor (newly added
           // items are added to the beginning)
           addedItems.push(item);
-        }
-      }
-
-      // replace existing items with their updated versions
-      if (update.updatedItems) {
-        for (const [id, item] of update.updatedItems) {
-          nextLibraryItemsMap.set(id, item);
         }
       }
 

@@ -5,11 +5,7 @@ import {
   bindOrUnbindLinearElement,
   isBindingEnabled,
 } from "@excalidraw/element/binding";
-import {
-  isValidPolygon,
-  LinearElementEditor,
-  newElementWith,
-} from "@excalidraw/element";
+import { isValidPolygon, LinearElementEditor } from "@excalidraw/element";
 
 import {
   isBindingElement,
@@ -18,12 +14,7 @@ import {
   isLineElement,
 } from "@excalidraw/element";
 
-import {
-  KEYS,
-  arrayToMap,
-  tupleToCoors,
-  updateActiveTool,
-} from "@excalidraw/common";
+import { KEYS, arrayToMap, updateActiveTool } from "@excalidraw/common";
 import { isPathALoop } from "@excalidraw/element";
 
 import { isInvisiblySmallElement } from "@excalidraw/element";
@@ -52,16 +43,12 @@ export const actionFinalize = register({
   trackEvent: false,
   perform: (elements, appState, data, app) => {
     const { interactiveCanvas, focusContainer, scene } = app;
-    const { event, sceneCoords } =
-      (data as {
-        event?: PointerEvent;
-        sceneCoords?: { x: number; y: number };
-      }) ?? {};
+
     const elementsMap = scene.getNonDeletedElementsMap();
 
-    if (event && appState.selectedLinearElement) {
+    if (data?.event && appState.selectedLinearElement) {
       const linearElementEditor = LinearElementEditor.handlePointerUp(
-        event,
+        data.event,
         appState.selectedLinearElement,
         appState,
         app.scene,
@@ -82,14 +69,7 @@ export const actionFinalize = register({
         let newElements = elements;
         if (element && isInvisiblySmallElement(element)) {
           // TODO: #7348 in theory this gets recorded by the store, so the invisible elements could be restored by the undo/redo, which might be not what we would want
-          newElements = newElements.map((el) => {
-            if (el.id === element.id) {
-              return newElementWith(el, {
-                isDeleted: true,
-              });
-            }
-            return el;
-          });
+          newElements = newElements.filter((el) => el.id !== element!.id);
         }
         return {
           elements: newElements,
@@ -105,9 +85,9 @@ export const actionFinalize = register({
       }
     }
 
-    if (appState.selectedLinearElement?.isEditing) {
+    if (appState.editingLinearElement) {
       const { elementId, startBindingElement, endBindingElement } =
-        appState.selectedLinearElement;
+        appState.editingLinearElement;
       const element = LinearElementEditor.getElement(elementId, elementsMap);
 
       if (element) {
@@ -128,21 +108,12 @@ export const actionFinalize = register({
         return {
           elements:
             element.points.length < 2 || isInvisiblySmallElement(element)
-              ? elements.map((el) => {
-                  if (el.id === element.id) {
-                    return newElementWith(el, { isDeleted: true });
-                  }
-                  return el;
-                })
+              ? elements.filter((el) => el.id !== element.id)
               : undefined,
           appState: {
             ...appState,
             cursorButton: "up",
-            selectedLinearElement: new LinearElementEditor(
-              element,
-              arrayToMap(elementsMap),
-              false, // exit editing mode
-            ),
+            editingLinearElement: null,
           },
           captureUpdate: CaptureUpdateAction.IMMEDIATELY,
         };
@@ -150,6 +121,18 @@ export const actionFinalize = register({
     }
 
     let newElements = elements;
+
+    const pendingImageElement =
+      appState.pendingImageElementId &&
+      scene.getElement(appState.pendingImageElementId);
+
+    if (pendingImageElement) {
+      scene.mutateElement(
+        pendingImageElement,
+        { isDeleted: true },
+        { informMutation: false, isDragging: false },
+      );
+    }
 
     if (window.document.activeElement instanceof HTMLElement) {
       focusContainer();
@@ -174,7 +157,11 @@ export const actionFinalize = register({
 
     if (element) {
       // pen and mouse have hover
-      if (appState.multiElement && element.type !== "freedraw") {
+      if (
+        appState.multiElement &&
+        element.type !== "freedraw" &&
+        appState.lastPointerDownWith !== "touch"
+      ) {
         const { points, lastCommittedPoint } = element;
         if (
           !lastCommittedPoint ||
@@ -188,12 +175,7 @@ export const actionFinalize = register({
 
       if (element && isInvisiblySmallElement(element)) {
         // TODO: #7348 in theory this gets recorded by the store, so the invisible elements could be restored by the undo/redo, which might be not what we would want
-        newElements = newElements.map((el) => {
-          if (el.id === element?.id) {
-            return newElementWith(el, { isDeleted: true });
-          }
-          return el;
-        });
+        newElements = newElements.filter((el) => el.id !== element!.id);
       }
 
       if (isLinearElement(element) || isFreeDrawElement(element)) {
@@ -234,17 +216,12 @@ export const actionFinalize = register({
           element.points.length > 1 &&
           isBindingEnabled(appState)
         ) {
-          const coords =
-            sceneCoords ??
-            tupleToCoors(
-              LinearElementEditor.getPointAtIndexGlobalCoordinates(
-                element,
-                -1,
-                arrayToMap(elements),
-              ),
-            );
-
-          maybeBindLinearElement(element, appState, coords, scene);
+          const [x, y] = LinearElementEditor.getPointAtIndexGlobalCoordinates(
+            element,
+            -1,
+            arrayToMap(elements),
+          );
+          maybeBindLinearElement(element, appState, { x, y }, scene);
         }
       }
     }
@@ -261,13 +238,13 @@ export const actionFinalize = register({
     if (appState.activeTool.type === "eraser") {
       activeTool = updateActiveTool(appState, {
         ...(appState.activeTool.lastActiveTool || {
-          type: app.state.preferredSelectionTool.type,
+          type: "selection",
         }),
         lastActiveToolBeforeEraser: null,
       });
     } else {
       activeTool = updateActiveTool(appState, {
-        type: app.state.preferredSelectionTool.type,
+        type: "selection",
       });
     }
 
@@ -303,6 +280,7 @@ export const actionFinalize = register({
           element && isLinearElement(element)
             ? new LinearElementEditor(element, arrayToMap(newElements))
             : appState.selectedLinearElement,
+        pendingImageElementId: null,
       },
       // TODO: #7348 we should not capture everything, but if we don't, it leads to incosistencies -> revisit
       captureUpdate: CaptureUpdateAction.IMMEDIATELY,
@@ -310,7 +288,7 @@ export const actionFinalize = register({
   },
   keyTest: (event, appState) =>
     (event.key === KEYS.ESCAPE &&
-      (appState.selectedLinearElement?.isEditing ||
+      (appState.editingLinearElement !== null ||
         (!appState.newElement && appState.multiElement === null))) ||
     ((event.key === KEYS.ESCAPE || event.key === KEYS.ENTER) &&
       appState.multiElement !== null),

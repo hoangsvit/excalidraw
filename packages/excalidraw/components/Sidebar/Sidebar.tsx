@@ -9,18 +9,12 @@ import React, {
   useCallback,
 } from "react";
 
-import {
-  CLASSES,
-  EVENT,
-  isDevEnv,
-  KEYS,
-  updateObject,
-} from "@excalidraw/common";
+import { EVENT, isDevEnv, KEYS, updateObject } from "@excalidraw/common";
 
 import { useUIAppState } from "../../context/ui-appState";
 import { atom, useSetAtom } from "../../editor-jotai";
 import { useOutsideClick } from "../../hooks/useOutsideClick";
-import { useEditorInterface, useExcalidrawSetAppState } from "../App";
+import { useDevice, useExcalidrawSetAppState } from "../App";
 import { Island } from "../Island";
 
 import { SidebarHeader } from "./SidebarHeader";
@@ -96,7 +90,7 @@ export const SidebarInner = forwardRef(
       return islandRef.current!;
     });
 
-    const editorInterface = useEditorInterface();
+    const device = useDevice();
 
     const closeLibrary = useCallback(() => {
       const isDialogOpen = !!document.querySelector(".Dialog");
@@ -117,11 +111,11 @@ export const SidebarInner = forwardRef(
           if ((event.target as Element).closest(".sidebar-trigger")) {
             return;
           }
-          if (!docked || !editorInterface.canFitSidebar) {
+          if (!docked || !device.editor.canFitSidebar) {
             closeLibrary();
           }
         },
-        [closeLibrary, docked, editorInterface.canFitSidebar],
+        [closeLibrary, docked, device.editor.canFitSidebar],
       ),
     );
 
@@ -129,7 +123,7 @@ export const SidebarInner = forwardRef(
       const handleKeyDown = (event: KeyboardEvent) => {
         if (
           event.key === KEYS.ESCAPE &&
-          (!docked || !editorInterface.canFitSidebar)
+          (!docked || !device.editor.canFitSidebar)
         ) {
           closeLibrary();
         }
@@ -138,16 +132,12 @@ export const SidebarInner = forwardRef(
       return () => {
         document.removeEventListener(EVENT.KEYDOWN, handleKeyDown);
       };
-    }, [closeLibrary, docked, editorInterface.canFitSidebar]);
+    }, [closeLibrary, docked, device.editor.canFitSidebar]);
 
     return (
       <Island
         {...rest}
-        className={clsx(
-          CLASSES.SIDEBAR,
-          { "sidebar--docked": docked },
-          className,
-        )}
+        className={clsx("sidebar", { "sidebar--docked": docked }, className)}
         ref={islandRef}
       >
         <SidebarPropsContext.Provider value={headerPropsRef.current}>

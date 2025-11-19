@@ -1,10 +1,6 @@
 import { pointFrom, pointRotateRads } from "@excalidraw/math";
 
-import {
-  elementCenterPoint,
-  getCommonBounds,
-  getElementPointsCoords,
-} from "@excalidraw/element";
+import { getCommonBounds, getElementPointsCoords } from "@excalidraw/element";
 import { cropElement } from "@excalidraw/element";
 import {
   getTransformHandles,
@@ -20,7 +16,7 @@ import {
   isTextElement,
   isFrameLikeElement,
 } from "@excalidraw/element";
-import { KEYS, arrayToMap } from "@excalidraw/common";
+import { KEYS, arrayToMap, elementCenterPoint } from "@excalidraw/common";
 
 import type { GlobalPoint, LocalPoint, Radians } from "@excalidraw/math";
 

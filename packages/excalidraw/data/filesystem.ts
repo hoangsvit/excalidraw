@@ -8,15 +8,13 @@ import { EVENT, MIME_TYPES, debounce } from "@excalidraw/common";
 
 import { AbortError } from "../errors";
 
-import { normalizeFile } from "./blob";
-
 import type { FileSystemHandle } from "browser-fs-access";
 
 type FILE_EXTENSION = Exclude<keyof typeof MIME_TYPES, "binary">;
 
-const INPUT_CHANGE_INTERVAL_MS = 5000;
+const INPUT_CHANGE_INTERVAL_MS = 500;
 
-export const fileOpen = async <M extends boolean | undefined = false>(opts: {
+export const fileOpen = <M extends boolean | undefined = false>(opts: {
   extensions?: FILE_EXTENSION[];
   description: string;
   multiple?: M;
@@ -37,7 +35,7 @@ export const fileOpen = async <M extends boolean | undefined = false>(opts: {
     return acc.concat(`.${ext}`);
   }, [] as string[]);
 
-  const files = await _fileOpen({
+  return _fileOpen({
     description: opts.description,
     extensions,
     mimeTypes,
@@ -76,14 +74,7 @@ export const fileOpen = async <M extends boolean | undefined = false>(opts: {
         }
       };
     },
-  });
-
-  if (Array.isArray(files)) {
-    return (await Promise.all(
-      files.map((file) => normalizeFile(file)),
-    )) as RetType;
-  }
-  return (await normalizeFile(files)) as RetType;
+  }) as Promise<RetType>;
 };
 
 export const fileSave = (

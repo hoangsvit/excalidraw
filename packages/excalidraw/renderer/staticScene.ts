@@ -113,7 +113,7 @@ const strokeGrid = (
   context.restore();
 };
 
-export const frameClip = (
+const frameClip = (
   frame: ExcalidrawFrameLikeElement,
   context: CanvasRenderingContext2D,
   renderConfig: StaticCanvasRenderConfig,

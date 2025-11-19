@@ -2,12 +2,7 @@ import { pointFrom, type GlobalPoint } from "@excalidraw/math";
 import { useMemo } from "react";
 
 import { MIN_WIDTH_OR_HEIGHT } from "@excalidraw/common";
-import {
-  getElementsInResizingFrame,
-  isFrameLikeElement,
-  replaceAllElementsInFrame,
-  updateBoundElements,
-} from "@excalidraw/element";
+import { updateBoundElements } from "@excalidraw/element";
 import {
   rescalePointsInElement,
   resizeSingleElement,
@@ -30,10 +25,7 @@ import DragInput from "./DragInput";
 import { getAtomicUnits, getStepSizedValue, isPropertyEditable } from "./utils";
 import { getElementsInAtomicUnit } from "./utils";
 
-import type {
-  DragFinishedCallbackType,
-  DragInputCallbackType,
-} from "./DragInput";
+import type { DragInputCallbackType } from "./DragInput";
 import type { AtomicUnit } from "./utils";
 import type { AppState } from "../../types";
 
@@ -161,8 +153,6 @@ const handleDimensionChange: DragInputCallbackType<
   nextValue,
   scene,
   property,
-  setAppState,
-  app,
 }) => {
   const elementsMap = scene.getNonDeletedElementsMap();
   const atomicUnits = getAtomicUnits(originalElements, originalAppState);
@@ -249,25 +239,6 @@ const handleDimensionChange: DragInputCallbackType<
               shouldInformMutation: false,
             },
           );
-
-          // Handle frame membership update for resized frames
-          if (isFrameLikeElement(latestElement)) {
-            const nextElementsInFrame = getElementsInResizingFrame(
-              scene.getElementsIncludingDeleted(),
-              latestElement,
-              originalAppState,
-              scene.getNonDeletedElementsMap(),
-            );
-
-            const updatedElements = replaceAllElementsInFrame(
-              scene.getElementsIncludingDeleted(),
-              nextElementsInFrame,
-              latestElement,
-              app,
-            );
-
-            scene.replaceAllElements(updatedElements);
-          }
         }
       }
     }
@@ -279,7 +250,6 @@ const handleDimensionChange: DragInputCallbackType<
 
   const changeInWidth = property === "width" ? accumulatedChange : 0;
   const changeInHeight = property === "height" ? accumulatedChange : 0;
-  const elementsToHighlight: ExcalidrawElement[] = [];
 
   for (const atomicUnit of atomicUnits) {
     const elementsInUnit = getElementsInAtomicUnit(
@@ -372,61 +342,11 @@ const handleDimensionChange: DragInputCallbackType<
             shouldInformMutation: false,
           },
         );
-
-        // Handle highlighting frame element candidates
-        if (isFrameLikeElement(latestElement)) {
-          const nextElementsInFrame = getElementsInResizingFrame(
-            scene.getElementsIncludingDeleted(),
-            latestElement,
-            originalAppState,
-            scene.getNonDeletedElementsMap(),
-          );
-
-          elementsToHighlight.push(...nextElementsInFrame);
-        }
       }
     }
   }
 
-  setAppState({
-    elementsToHighlight,
-  });
-
   scene.triggerUpdate();
-};
-
-const handleDragFinished: DragFinishedCallbackType = ({
-  setAppState,
-  app,
-  originalElements,
-  originalAppState,
-}) => {
-  const elementsMap = app.scene.getNonDeletedElementsMap();
-  const origElement = originalElements?.[0];
-  const latestElement = origElement && elementsMap.get(origElement.id);
-
-  // Handle frame membership update for resized frames
-  if (latestElement && isFrameLikeElement(latestElement)) {
-    const nextElementsInFrame = getElementsInResizingFrame(
-      app.scene.getElementsIncludingDeleted(),
-      latestElement,
-      originalAppState,
-      app.scene.getNonDeletedElementsMap(),
-    );
-
-    const updatedElements = replaceAllElementsInFrame(
-      app.scene.getElementsIncludingDeleted(),
-      nextElementsInFrame,
-      latestElement,
-      app,
-    );
-
-    app.scene.replaceAllElements(updatedElements);
-
-    setAppState({
-      elementsToHighlight: null,
-    });
-  }
 };
 
 const MultiDimension = ({
@@ -476,7 +396,6 @@ const MultiDimension = ({
       appState={appState}
       property={property}
       scene={scene}
-      dragFinishedCallback={handleDragFinished}
     />
   );
 };

@@ -1,6 +1,7 @@
+import { doBoundsIntersect, type Bounds } from "@excalidraw/element";
+
 import { isPoint, pointDistance, pointFrom, pointFromVector } from "./point";
 import { vector, vectorNormal, vectorNormalize, vectorScale } from "./vector";
-import { LegendreGaussN24CValues, LegendreGaussN24TValues } from "./constants";
 
 import type { Curve, GlobalPoint, LineSegment, LocalPoint } from "./types";
 
@@ -21,9 +22,20 @@ export function curve<Point extends GlobalPoint | LocalPoint>(
   return [a, b, c, d] as Curve<Point>;
 }
 
-function solveWithAnalyticalJacobian<Point extends GlobalPoint | LocalPoint>(
-  curve: Curve<Point>,
-  lineSegment: LineSegment<Point>,
+function gradient(
+  f: (t: number, s: number) => number,
+  t0: number,
+  s0: number,
+  delta: number = 1e-6,
+): number[] {
+  return [
+    (f(t0 + delta, s0) - f(t0 - delta, s0)) / (2 * delta),
+    (f(t0, s0 + delta) - f(t0, s0 - delta)) / (2 * delta),
+  ];
+}
+
+function solve(
+  f: (t: number, s: number) => [number, number],
   t0: number,
   s0: number,
   tolerance: number = 1e-3,
@@ -37,75 +49,33 @@ function solveWithAnalyticalJacobian<Point extends GlobalPoint | LocalPoint>(
       return null;
     }
 
-    // Compute bezier point at parameter t0
-    const bt = 1 - t0;
-    const bt2 = bt * bt;
-    const bt3 = bt2 * bt;
-    const t0_2 = t0 * t0;
-    const t0_3 = t0_2 * t0;
+    const y0 = f(t0, s0);
+    const jacobian = [
+      gradient((t, s) => f(t, s)[0], t0, s0),
+      gradient((t, s) => f(t, s)[1], t0, s0),
+    ];
+    const b = [[-y0[0]], [-y0[1]]];
+    const det =
+      jacobian[0][0] * jacobian[1][1] - jacobian[0][1] * jacobian[1][0];
 
-    const bezierX =
-      bt3 * curve[0][0] +
-      3 * bt2 * t0 * curve[1][0] +
-      3 * bt * t0_2 * curve[2][0] +
-      t0_3 * curve[3][0];
-    const bezierY =
-      bt3 * curve[0][1] +
-      3 * bt2 * t0 * curve[1][1] +
-      3 * bt * t0_2 * curve[2][1] +
-      t0_3 * curve[3][1];
-
-    // Compute line point at parameter s0
-    const lineX =
-      lineSegment[0][0] + s0 * (lineSegment[1][0] - lineSegment[0][0]);
-    const lineY =
-      lineSegment[0][1] + s0 * (lineSegment[1][1] - lineSegment[0][1]);
-
-    // Function values
-    const fx = bezierX - lineX;
-    const fy = bezierY - lineY;
-
-    error = Math.abs(fx) + Math.abs(fy);
-
-    if (error < tolerance) {
-      break;
-    }
-
-    // Analytical derivatives
-    const dfx_dt =
-      -3 * bt2 * curve[0][0] +
-      3 * bt2 * curve[1][0] -
-      6 * bt * t0 * curve[1][0] -
-      3 * t0_2 * curve[2][0] +
-      6 * bt * t0 * curve[2][0] +
-      3 * t0_2 * curve[3][0];
-
-    const dfy_dt =
-      -3 * bt2 * curve[0][1] +
-      3 * bt2 * curve[1][1] -
-      6 * bt * t0 * curve[1][1] -
-      3 * t0_2 * curve[2][1] +
-      6 * bt * t0 * curve[2][1] +
-      3 * t0_2 * curve[3][1];
-
-    // Line derivatives
-    const dfx_ds = -(lineSegment[1][0] - lineSegment[0][0]);
-    const dfy_ds = -(lineSegment[1][1] - lineSegment[0][1]);
-
-    // Jacobian determinant
-    const det = dfx_dt * dfy_ds - dfx_ds * dfy_dt;
-
-    if (Math.abs(det) < 1e-12) {
+    if (det === 0) {
       return null;
     }
 
-    // Newton step
-    const invDet = 1 / det;
-    const dt = invDet * (dfy_ds * -fx - dfx_ds * -fy);
-    const ds = invDet * (-dfy_dt * -fx + dfx_dt * -fy);
+    const iJ = [
+      [jacobian[1][1] / det, -jacobian[0][1] / det],
+      [-jacobian[1][0] / det, jacobian[0][0] / det],
+    ];
+    const h = [
+      [iJ[0][0] * b[0][0] + iJ[0][1] * b[1][0]],
+      [iJ[1][0] * b[0][0] + iJ[1][1] * b[1][0]],
+    ];
 
-    t0 += dt;
-    s0 += ds;
+    t0 = t0 + h[0][0];
+    s0 = s0 + h[1][0];
+
+    const [tErr, sErr] = f(t0, s0);
+    error = Math.max(Math.abs(tErr), Math.abs(sErr));
     iter += 1;
   }
 
@@ -127,49 +97,76 @@ export const bezierEquation = <Point extends GlobalPoint | LocalPoint>(
       t ** 3 * c[3][1],
   );
 
-const initial_guesses: [number, number][] = [
-  [0.5, 0],
-  [0.2, 0],
-  [0.8, 0],
-];
-
-const calculate = <Point extends GlobalPoint | LocalPoint>(
-  [t0, s0]: [number, number],
-  l: LineSegment<Point>,
-  c: Curve<Point>,
-) => {
-  const solution = solveWithAnalyticalJacobian(c, l, t0, s0, 1e-2, 3);
-
-  if (!solution) {
-    return null;
-  }
-
-  const [t, s] = solution;
-
-  if (t < 0 || t > 1 || s < 0 || s > 1) {
-    return null;
-  }
-
-  return bezierEquation(c, t);
-};
-
 /**
  * Computes the intersection between a cubic spline and a line segment.
  */
 export function curveIntersectLineSegment<
   Point extends GlobalPoint | LocalPoint,
 >(c: Curve<Point>, l: LineSegment<Point>): Point[] {
-  let solution = calculate(initial_guesses[0], l, c);
+  // Optimize by doing a cheap bounding box check first
+  const b1 = curveBounds(c);
+  const b2 = [
+    Math.min(l[0][0], l[1][0]),
+    Math.min(l[0][1], l[1][1]),
+    Math.max(l[0][0], l[1][0]),
+    Math.max(l[0][1], l[1][1]),
+  ] as Bounds;
+
+  if (!doBoundsIntersect(b1, b2)) {
+    return [];
+  }
+
+  const line = (s: number) =>
+    pointFrom<Point>(
+      l[0][0] + s * (l[1][0] - l[0][0]),
+      l[0][1] + s * (l[1][1] - l[0][1]),
+    );
+
+  const initial_guesses: [number, number][] = [
+    [0.5, 0],
+    [0.2, 0],
+    [0.8, 0],
+  ];
+
+  const calculate = ([t0, s0]: [number, number]) => {
+    const solution = solve(
+      (t: number, s: number) => {
+        const bezier_point = bezierEquation(c, t);
+        const line_point = line(s);
+
+        return [
+          bezier_point[0] - line_point[0],
+          bezier_point[1] - line_point[1],
+        ];
+      },
+      t0,
+      s0,
+    );
+
+    if (!solution) {
+      return null;
+    }
+
+    const [t, s] = solution;
+
+    if (t < 0 || t > 1 || s < 0 || s > 1) {
+      return null;
+    }
+
+    return bezierEquation(c, t);
+  };
+
+  let solution = calculate(initial_guesses[0]);
   if (solution) {
     return [solution];
   }
 
-  solution = calculate(initial_guesses[1], l, c);
+  solution = calculate(initial_guesses[1]);
   if (solution) {
     return [solution];
   }
 
-  solution = calculate(initial_guesses[2], l, c);
+  solution = calculate(initial_guesses[2]);
   if (solution) {
     return [solution];
   }
@@ -296,6 +293,15 @@ export function curveTangent<Point extends GlobalPoint | LocalPoint>(
   );
 }
 
+function curveBounds<Point extends GlobalPoint | LocalPoint>(
+  c: Curve<Point>,
+): Bounds {
+  const [P0, P1, P2, P3] = c;
+  const x = [P0[0], P1[0], P2[0], P3[0]];
+  const y = [P0[1], P1[1], P2[1], P3[1]];
+  return [Math.min(...x), Math.min(...y), Math.max(...x), Math.max(...y)];
+}
+
 export function curveCatmullRomQuadraticApproxPoints(
   points: GlobalPoint[],
   tension = 0.5,
@@ -399,124 +405,4 @@ export function offsetPointsForQuadraticBezier(
   }
 
   return offsetPoints;
-}
-
-/**
- * Implementation based on Legendre-Gauss quadrature for more accurate arc
- * length calculation.
- *
- * Reference: https://pomax.github.io/bezierinfo/#arclength
- *
- * @param c The curve to calculate the length of
- * @returns The approximated length of the curve
- */
-export function curveLength<P extends GlobalPoint | LocalPoint>(
-  c: Curve<P>,
-): number {
-  const z2 = 0.5;
-  let sum = 0;
-
-  for (let i = 0; i < 24; i++) {
-    const t = z2 * LegendreGaussN24TValues[i] + z2;
-    const derivativeVector = curveTangent(c, t);
-    const magnitude = Math.sqrt(
-      derivativeVector[0] * derivativeVector[0] +
-        derivativeVector[1] * derivativeVector[1],
-    );
-    sum += LegendreGaussN24CValues[i] * magnitude;
-  }
-
-  return z2 * sum;
-}
-
-/**
- * Calculates the curve length from t=0 to t=parameter using the same
- * Legendre-Gauss quadrature method used in curveLength
- *
- * @param c The curve to calculate the partial length for
- * @param t The parameter value (0 to 1) to calculate length up to
- * @returns The length of the curve from beginning to parameter t
- */
-export function curveLengthAtParameter<P extends GlobalPoint | LocalPoint>(
-  c: Curve<P>,
-  t: number,
-): number {
-  if (t <= 0) {
-    return 0;
-  }
-  if (t >= 1) {
-    return curveLength(c);
-  }
-
-  // Scale and shift the integration interval from [0,t] to [-1,1]
-  // which is what the Legendre-Gauss quadrature expects
-  const z1 = t / 2;
-  const z2 = t / 2;
-
-  let sum = 0;
-
-  for (let i = 0; i < 24; i++) {
-    const parameter = z1 * LegendreGaussN24TValues[i] + z2;
-    const derivativeVector = curveTangent(c, parameter);
-    const magnitude = Math.sqrt(
-      derivativeVector[0] * derivativeVector[0] +
-        derivativeVector[1] * derivativeVector[1],
-    );
-    sum += LegendreGaussN24CValues[i] * magnitude;
-  }
-
-  return z1 * sum; // Scale the result back to the original interval
-}
-
-/**
- * Calculates the point at a specific percentage of a curve's total length
- * using binary search for improved efficiency and accuracy.
- *
- * @param c The curve to calculate point on
- * @param percent A value between 0 and 1 representing the percentage of the curve's length
- * @returns The point at the specified percentage of curve length
- */
-export function curvePointAtLength<P extends GlobalPoint | LocalPoint>(
-  c: Curve<P>,
-  percent: number,
-): P {
-  if (percent <= 0) {
-    return bezierEquation(c, 0);
-  }
-
-  if (percent >= 1) {
-    return bezierEquation(c, 1);
-  }
-
-  const totalLength = curveLength(c);
-  const targetLength = totalLength * percent;
-
-  // Binary search to find parameter t where length at t equals target length
-  let tMin = 0;
-  let tMax = 1;
-  let t = percent; // Start with a reasonable guess (t = percent)
-  let currentLength = 0;
-
-  // Tolerance for length comparison and iteration limit to avoid infinite loops
-  const tolerance = totalLength * 0.0001;
-  const maxIterations = 20;
-
-  for (let iteration = 0; iteration < maxIterations; iteration++) {
-    currentLength = curveLengthAtParameter(c, t);
-    const error = Math.abs(currentLength - targetLength);
-
-    if (error < tolerance) {
-      break;
-    }
-
-    if (currentLength < targetLength) {
-      tMin = t;
-    } else {
-      tMax = t;
-    }
-
-    t = (tMin + tMax) / 2;
-  }
-
-  return bezierEquation(c, t);
 }

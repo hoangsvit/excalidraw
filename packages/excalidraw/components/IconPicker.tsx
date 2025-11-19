@@ -8,7 +8,7 @@ import { atom, useAtom } from "../editor-jotai";
 import { getLanguage, t } from "../i18n";
 
 import Collapsible from "./Stats/Collapsible";
-import { useEditorInterface, useExcalidrawContainer } from "./App";
+import { useDevice } from "./App";
 
 import "./IconPicker.scss";
 
@@ -38,8 +38,7 @@ function Picker<T>({
   onClose: () => void;
   numberOfOptionsToAlwaysShow?: number;
 }) {
-  const editorInterface = useEditorInterface();
-  const { container } = useExcalidrawContainer();
+  const device = useDevice();
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     const pressedOption = options.find(
@@ -153,16 +152,17 @@ function Picker<T>({
     );
   };
 
-  const isMobile = editorInterface.formFactor === "phone";
-
   return (
     <Popover.Content
-      side={isMobile ? "right" : "bottom"}
+      side={
+        device.editor.isMobile && !device.viewport.isLandscape
+          ? "top"
+          : "bottom"
+      }
       align="start"
-      sideOffset={isMobile ? 8 : 12}
-      style={{ zIndex: "var(--zIndex-ui-styles-popup)" }}
+      sideOffset={12}
+      style={{ zIndex: "var(--zIndex-popup)" }}
       onKeyDown={handleKeyDown}
-      collisionBoundary={container ?? undefined}
     >
       <div
         className={`picker`}

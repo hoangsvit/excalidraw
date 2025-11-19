@@ -47,43 +47,42 @@ class DataTransferItem {
   }
 }
 
-class DataTransferItemList extends Array<DataTransferItem> {
+class DataTransferList {
+  items: DataTransferItem[] = [];
+
   add(data: string | File, type: string = ""): void {
     if (typeof data === "string") {
-      this.push(new DataTransferItem("string", type, data));
+      this.items.push(new DataTransferItem("string", type, data));
     } else if (data instanceof File) {
-      this.push(new DataTransferItem("file", type, data));
+      this.items.push(new DataTransferItem("file", type, data));
     }
   }
 
   clear(): void {
-    this.clear();
+    this.items = [];
   }
 }
 
 class DataTransfer {
-  public items: DataTransferItemList = new DataTransferItemList();
+  public items: DataTransferList = new DataTransferList();
+  private _types: Record<string, string> = {};
 
   get files() {
-    return this.items
+    return this.items.items
       .filter((item) => item.kind === "file")
       .map((item) => item.getAsFile()!);
   }
 
   add(data: string | File, type: string = ""): void {
-    if (typeof data === "string") {
-      this.items.add(data, type);
-    } else {
-      this.items.add(data);
-    }
+    this.items.add(data, type);
   }
 
   setData(type: string, value: string) {
-    this.items.add(value, type);
+    this._types[type] = value;
   }
 
   getData(type: string) {
-    return this.items.find((item) => item.type === type)?.data || "";
+    return this._types[type] || "";
   }
 }
 

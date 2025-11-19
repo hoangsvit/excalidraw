@@ -1,6 +1,7 @@
 import {
   DEFAULT_TRANSFORM_HANDLE_SPACING,
-  type EditorInterface,
+  isAndroid,
+  isIOS,
 } from "@excalidraw/common";
 
 import { pointFrom, pointRotateRads } from "@excalidraw/math";
@@ -8,6 +9,7 @@ import { pointFrom, pointRotateRads } from "@excalidraw/math";
 import type { Radians } from "@excalidraw/math";
 
 import type {
+  Device,
   InteractiveCanvasAppState,
   Zoom,
 } from "@excalidraw/excalidraw/types";
@@ -109,21 +111,20 @@ const generateTransformHandle = (
   return [xx - width / 2, yy - height / 2, width, height];
 };
 
-export const canResizeFromSides = (editorInterface: EditorInterface) => {
-  if (
-    editorInterface.formFactor === "phone" &&
-    editorInterface.userAgent.isMobileDevice
-  ) {
+export const canResizeFromSides = (device: Device) => {
+  if (device.viewport.isMobile) {
+    return false;
+  }
+
+  if (device.isTouchScreen && (isAndroid || isIOS)) {
     return false;
   }
 
   return true;
 };
 
-export const getOmitSidesForEditorInterface = (
-  editorInterface: EditorInterface,
-) => {
-  if (canResizeFromSides(editorInterface)) {
+export const getOmitSidesForDevice = (device: Device) => {
+  if (canResizeFromSides(device)) {
     return DEFAULT_OMIT_SIDES;
   }
 
@@ -325,12 +326,11 @@ export const getTransformHandles = (
   );
 };
 
-export const hasBoundingBox = (
+export const shouldShowBoundingBox = (
   elements: readonly NonDeletedExcalidrawElement[],
   appState: InteractiveCanvasAppState,
-  editorInterface: EditorInterface,
 ) => {
-  if (appState.selectedLinearElement?.isEditing) {
+  if (appState.editingLinearElement) {
     return false;
   }
   if (elements.length > 1) {
@@ -345,7 +345,5 @@ export const hasBoundingBox = (
     return true;
   }
 
-  // on mobile/tablet we currently don't show bbox because of resize issues
-  // (also prob best for simplicity's sake)
-  return element.points.length > 2 && !editorInterface.userAgent.isMobileDevice;
+  return element.points.length > 2;
 };

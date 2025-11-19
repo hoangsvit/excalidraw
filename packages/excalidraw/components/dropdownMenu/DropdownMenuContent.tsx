@@ -5,7 +5,7 @@ import { EVENT, KEYS } from "@excalidraw/common";
 
 import { useOutsideClick } from "../../hooks/useOutsideClick";
 import { useStable } from "../../hooks/useStable";
-import { useEditorInterface } from "../App";
+import { useDevice } from "../App";
 import { Island } from "../Island";
 import Stack from "../Stack";
 
@@ -17,7 +17,6 @@ const MenuContent = ({
   className = "",
   onSelect,
   style,
-  placement = "bottom",
 }: {
   children?: React.ReactNode;
   onClickOutside?: () => void;
@@ -27,22 +26,14 @@ const MenuContent = ({
    */
   onSelect?: (event: Event) => void;
   style?: React.CSSProperties;
-  placement?: "top" | "bottom";
 }) => {
-  const editorInterface = useEditorInterface();
+  const device = useDevice();
   const menuRef = useRef<HTMLDivElement>(null);
 
   const callbacksRef = useStable({ onClickOutside });
 
-  useOutsideClick(menuRef, (event) => {
-    // prevents closing if clicking on the trigger button
-    if (
-      !menuRef.current
-        ?.closest(".dropdown-menu-container")
-        ?.contains(event.target)
-    ) {
-      callbacksRef.onClickOutside?.();
-    }
+  useOutsideClick(menuRef, () => {
+    callbacksRef.onClickOutside?.();
   });
 
   useEffect(() => {
@@ -66,8 +57,7 @@ const MenuContent = ({
   }, [callbacksRef]);
 
   const classNames = clsx(`dropdown-menu ${className}`, {
-    "dropdown-menu--mobile": editorInterface.formFactor === "phone",
-    "dropdown-menu--placement-top": placement === "top",
+    "dropdown-menu--mobile": device.editor.isMobile,
   }).trim();
 
   return (
@@ -80,7 +70,7 @@ const MenuContent = ({
       >
         {/* the zIndex ensures this menu has higher stacking order,
     see https://github.com/excalidraw/excalidraw/pull/1445 */}
-        {editorInterface.formFactor === "phone" ? (
+        {device.editor.isMobile ? (
           <Stack.Col className="dropdown-menu-container">{children}</Stack.Col>
         ) : (
           <Island

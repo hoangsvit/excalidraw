@@ -259,9 +259,7 @@ export const loadFromFirebase = async (
   }
   const storedScene = docSnap.data() as FirebaseStoredScene;
   const elements = getSyncableElements(
-    restoreElements(await decryptElements(storedScene, roomKey), null, {
-      deleteInvisibleElements: true,
-    }),
+    restoreElements(await decryptElements(storedScene, roomKey), null),
   );
 
   if (socket) {

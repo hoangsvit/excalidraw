@@ -13,7 +13,7 @@ import {
   getDraggedElementsBounds,
   getElementAbsoluteCoords,
 } from "@excalidraw/element";
-import { isBoundToContainer } from "@excalidraw/element";
+import { isBoundToContainer, isFrameLikeElement } from "@excalidraw/element";
 
 import { getMaximumGroups } from "@excalidraw/element";
 
@@ -169,14 +169,8 @@ export const isSnappingEnabled = ({
   selectedElements: NonDeletedExcalidrawElement[];
 }) => {
   if (event) {
-    // Allow snapping for lasso tool when dragging selected elements
-    // but not during lasso selection phase
-    const isLassoDragging =
-      app.state.activeTool.type === "lasso" &&
-      app.state.selectedElementsAreBeingDragged;
-
     return (
-      (app.state.activeTool.type !== "lasso" || isLassoDragging) &&
+      app.state.activeTool.type !== "lasso" &&
       ((app.state.objectsSnapModeEnabled && !event[KEYS.CTRL_OR_CMD]) ||
         (!app.state.objectsSnapModeEnabled &&
           event[KEYS.CTRL_OR_CMD] &&
@@ -317,13 +311,20 @@ const getReferenceElements = (
   selectedElements: NonDeletedExcalidrawElement[],
   appState: AppState,
   elementsMap: ElementsMap,
-) =>
-  getVisibleAndNonSelectedElements(
+) => {
+  const selectedFrames = selectedElements
+    .filter((element) => isFrameLikeElement(element))
+    .map((frame) => frame.id);
+
+  return getVisibleAndNonSelectedElements(
     elements,
     selectedElements,
     appState,
     elementsMap,
+  ).filter(
+    (element) => !(element.frameId && selectedFrames.includes(element.frameId)),
   );
+};
 
 export const getVisibleGaps = (
   elements: readonly NonDeletedExcalidrawElement[],

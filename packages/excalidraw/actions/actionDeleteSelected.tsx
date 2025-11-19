@@ -1,8 +1,4 @@
-import {
-  KEYS,
-  MOBILE_ACTION_BUTTON_BG,
-  updateActiveTool,
-} from "@excalidraw/common";
+import { KEYS, updateActiveTool } from "@excalidraw/common";
 
 import { getNonDeletedElements } from "@excalidraw/element";
 import { fixBindingsAfterDeletion } from "@excalidraw/element";
@@ -29,8 +25,6 @@ import { t } from "../i18n";
 import { getSelectedElements, isSomeElementSelected } from "../scene";
 import { TrashIcon } from "../components/icons";
 import { ToolButton } from "../components/ToolButton";
-
-import { useStylesPanelMode } from "..";
 
 import { register } from "./register";
 
@@ -211,19 +205,16 @@ export const actionDeleteSelected = register({
   icon: TrashIcon,
   trackEvent: { category: "element", action: "delete" },
   perform: (elements, appState, formData, app) => {
-    if (appState.selectedLinearElement?.isEditing) {
+    if (appState.editingLinearElement) {
       const {
         elementId,
         selectedPointsIndices,
         startBindingElement,
         endBindingElement,
-      } = appState.selectedLinearElement;
+      } = appState.editingLinearElement;
       const elementsMap = app.scene.getNonDeletedElementsMap();
-      const linearElement = LinearElementEditor.getElement(
-        elementId,
-        elementsMap,
-      );
-      if (!linearElement) {
+      const element = LinearElementEditor.getElement(elementId, elementsMap);
+      if (!element) {
         return false;
       }
       // case: no point selected → do nothing, as deleting the whole element
@@ -234,10 +225,10 @@ export const actionDeleteSelected = register({
         return false;
       }
 
-      // case: deleting all points
-      if (selectedPointsIndices.length >= linearElement.points.length) {
+      // case: deleting last remaining point
+      if (element.points.length < 2) {
         const nextElements = elements.map((el) => {
-          if (el.id === linearElement.id) {
+          if (el.id === element.id) {
             return newElementWith(el, { isDeleted: true });
           }
           return el;
@@ -248,7 +239,7 @@ export const actionDeleteSelected = register({
           elements: nextElements,
           appState: {
             ...nextAppState,
-            selectedLinearElement: null,
+            editingLinearElement: null,
           },
           captureUpdate: CaptureUpdateAction.IMMEDIATELY,
         };
@@ -261,24 +252,20 @@ export const actionDeleteSelected = register({
           ? null
           : startBindingElement,
         endBindingElement: selectedPointsIndices?.includes(
-          linearElement.points.length - 1,
+          element.points.length - 1,
         )
           ? null
           : endBindingElement,
       };
 
-      LinearElementEditor.deletePoints(
-        linearElement,
-        app,
-        selectedPointsIndices,
-      );
+      LinearElementEditor.deletePoints(element, app, selectedPointsIndices);
 
       return {
         elements,
         appState: {
           ...appState,
-          selectedLinearElement: {
-            ...appState.selectedLinearElement,
+          editingLinearElement: {
+            ...appState.editingLinearElement,
             ...binding,
             selectedPointsIndices:
               selectedPointsIndices?.[0] > 0
@@ -304,9 +291,7 @@ export const actionDeleteSelected = register({
       elements: nextElements,
       appState: {
         ...nextAppState,
-        activeTool: updateActiveTool(appState, {
-          type: app.state.preferredSelectionTool.type,
-        }),
+        activeTool: updateActiveTool(appState, { type: "selection" }),
         multiElement: null,
         activeEmbeddable: null,
         selectedLinearElement: null,
@@ -322,25 +307,14 @@ export const actionDeleteSelected = register({
   keyTest: (event, appState, elements) =>
     (event.key === KEYS.BACKSPACE || event.key === KEYS.DELETE) &&
     !event[KEYS.CTRL_OR_CMD],
-  PanelComponent: ({ elements, appState, updateData, app }) => {
-    const isMobile = useStylesPanelMode() === "mobile";
-
-    return (
-      <ToolButton
-        type="button"
-        icon={TrashIcon}
-        title={t("labels.delete")}
-        aria-label={t("labels.delete")}
-        onClick={() => updateData(null)}
-        disabled={
-          !isSomeElementSelected(getNonDeletedElements(elements), appState)
-        }
-        style={{
-          ...(isMobile && appState.openPopup !== "compactOtherProperties"
-            ? MOBILE_ACTION_BUTTON_BG
-            : {}),
-        }}
-      />
-    );
-  },
+  PanelComponent: ({ elements, appState, updateData }) => (
+    <ToolButton
+      type="button"
+      icon={TrashIcon}
+      title={t("labels.delete")}
+      aria-label={t("labels.delete")}
+      onClick={() => updateData(null)}
+      visible={isSomeElementSelected(getNonDeletedElements(elements), appState)}
+    />
+  ),
 });

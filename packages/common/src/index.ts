@@ -10,5 +10,3 @@ export * from "./random";
 export * from "./url";
 export * from "./utils";
 export * from "./emitter";
-export * from "./visualdebug";
-export * from "./editorInterface";

@@ -3,7 +3,6 @@ import type {
   UserIdleState,
   throttleRAF,
   MIME_TYPES,
-  EditorInterface,
 } from "@excalidraw/common";
 
 import type { SuggestedBinding } from "@excalidraw/element";
@@ -25,6 +24,7 @@ import type {
   ChartType,
   FontFamilyValues,
   FileId,
+  ExcalidrawImageElement,
   Theme,
   StrokeRoundness,
   ExcalidrawEmbeddableElement,
@@ -191,6 +191,7 @@ type _CommonCanvasAppState = {
   offsetLeft: AppState["offsetLeft"];
   offsetTop: AppState["offsetTop"];
   theme: AppState["theme"];
+  pendingImageElementId: AppState["pendingImageElementId"];
 };
 
 export type StaticCanvasAppState = Readonly<
@@ -214,6 +215,7 @@ export type InteractiveCanvasAppState = Readonly<
   _CommonCanvasAppState & {
     // renderInteractiveScene
     activeEmbeddable: AppState["activeEmbeddable"];
+    editingLinearElement: AppState["editingLinearElement"];
     selectionElement: AppState["selectionElement"];
     selectedGroupIds: AppState["selectedGroupIds"];
     selectedLinearElement: AppState["selectedLinearElement"];
@@ -249,10 +251,10 @@ export type ObservedElementsAppState = {
   editingGroupId: AppState["editingGroupId"];
   selectedElementIds: AppState["selectedElementIds"];
   selectedGroupIds: AppState["selectedGroupIds"];
-  selectedLinearElement: {
-    elementId: LinearElementEditor["elementId"];
-    isEditing: boolean;
-  } | null;
+  // Avoiding storing whole instance, as it could lead into state incosistencies, empty undos/redos and etc.
+  editingLinearElementId: LinearElementEditor["elementId"] | null;
+  // Right now it's coupled to `editingLinearElement`, ideally it should not be really needed as we already have selectedElementIds & editingLinearElementId
+  selectedLinearElementId: LinearElementEditor["elementId"] | null;
   croppingElementId: AppState["croppingElementId"];
   lockedMultiSelections: AppState["lockedMultiSelections"];
   activeLockedId: AppState["activeLockedId"];
@@ -307,6 +309,7 @@ export interface AppState {
    * set when a new text is created or when an existing text is being edited
    */
   editingTextElement: NonDeletedExcalidrawElement | null;
+  editingLinearElement: LinearElementEditor | null;
   activeTool: {
     /**
      * indicates a previous tool we should revert back to if we deselect the
@@ -317,10 +320,6 @@ export interface AppState {
     // indicates if the current tool is temporarily switched on from the selection tool
     fromSelection: boolean;
   } & ActiveTool;
-  preferredSelectionTool: {
-    type: "selection" | "lasso";
-    initialized: boolean;
-  };
   penMode: boolean;
   penDetected: boolean;
   exportBackground: boolean;
@@ -351,16 +350,12 @@ export interface AppState {
   isResizing: boolean;
   isRotating: boolean;
   zoom: Zoom;
-  openMenu: "canvas" | null;
+  openMenu: "canvas" | "shape" | null;
   openPopup:
     | "canvasBackground"
     | "elementBackground"
     | "elementStroke"
     | "fontFamily"
-    | "compactTextProperties"
-    | "compactStrokeStyles"
-    | "compactOtherProperties"
-    | "compactArrowProperties"
     | null;
   openSidebar: { name: SidebarName; tab?: SidebarTabName } | null;
   openDialog:
@@ -369,6 +364,7 @@ export interface AppState {
     | { name: "ttd"; tab: "text-to-diagram" | "mermaid" }
     | { name: "commandPalette" }
     | { name: "elementLinkSelector"; sourceElementId: ExcalidrawElement["id"] };
+
   /**
    * Reflects user preference for whether the default sidebar should be docked.
    *
@@ -420,6 +416,8 @@ export interface AppState {
         shown: true;
         data: Spreadsheet;
       };
+  /** imageElement waiting to be placed on canvas */
+  pendingImageElementId: ExcalidrawImageElement["id"] | null;
   showHyperlinkPopup: false | "info" | "editor";
   selectedLinearElement: LinearElementEditor | null;
   snapLines: readonly SnapLine[];
@@ -572,10 +570,6 @@ export interface ExcalidrawProps {
     /** excludes the duplicated elements */
     prevElements: readonly ExcalidrawElement[],
   ) => ExcalidrawElement[] | void;
-  renderTopLeftUI?: (
-    isMobile: boolean,
-    appState: UIAppState,
-  ) => JSX.Element | null;
   renderTopRightUI?: (
     isMobile: boolean,
     appState: UIAppState,
@@ -674,12 +668,6 @@ export type UIOptions = Partial<{
   tools: {
     image: boolean;
   };
-  /**
-   * Optionally control the editor form factor and desktop UI mode from the host app.
-   * If not provided, we will take care of it internally.
-   */
-  formFactor?: EditorInterface["formFactor"];
-  desktopUIMode?: EditorInterface["desktopUIMode"];
   /** @deprecated does nothing. Will be removed in 0.15 */
   welcomeScreen?: boolean;
 }>;
@@ -719,7 +707,7 @@ export type AppClassProperties = {
     }
   >;
   files: BinaryFiles;
-  editorInterface: App["editorInterface"];
+  device: App["device"];
   scene: App["scene"];
   syncActionResult: App["syncActionResult"];
   fonts: App["fonts"];
@@ -749,7 +737,6 @@ export type AppClassProperties = {
 
   onPointerUpEmitter: App["onPointerUpEmitter"];
   updateEditorAtom: App["updateEditorAtom"];
-  onPointerDownEmitter: App["onPointerDownEmitter"];
 };
 
 export type PointerDownState = Readonly<{
@@ -799,10 +786,6 @@ export type PointerDownState = Readonly<{
     // by default same as PointerDownState.origin. On alt-duplication, reset
     // to current pointer position at time of duplication.
     origin: { x: number; y: number };
-    // Whether to block drag after lasso selection
-    // this is meant to be used to block dragging after lasso selection on PCs
-    // until the next pointer down
-    blockDragging: boolean;
   };
   // We need to have these in the state so that we can unsubscribe them
   eventListeners: {
@@ -824,16 +807,12 @@ export type UnsubscribeCallback = () => void;
 
 export interface ExcalidrawImperativeAPI {
   updateScene: InstanceType<typeof App>["updateScene"];
-  applyDeltas: InstanceType<typeof App>["applyDeltas"];
   mutateElement: InstanceType<typeof App>["mutateElement"];
   updateLibrary: InstanceType<typeof Library>["updateLibrary"];
   resetScene: InstanceType<typeof App>["resetScene"];
   getSceneElementsIncludingDeleted: InstanceType<
     typeof App
   >["getSceneElementsIncludingDeleted"];
-  getSceneElementsMapIncludingDeleted: InstanceType<
-    typeof App
-  >["getSceneElementsMapIncludingDeleted"];
   history: {
     clear: InstanceType<typeof App>["resetHistory"];
   };
@@ -851,7 +830,6 @@ export interface ExcalidrawImperativeAPI {
   setCursor: InstanceType<typeof App>["setCursor"];
   resetCursor: InstanceType<typeof App>["resetCursor"];
   toggleSidebar: InstanceType<typeof App>["toggleSidebar"];
-  getEditorInterface: () => EditorInterface;
   /**
    * Disables rendering of frames (including element clipping), but currently
    * the frames are still interactive in edit mode. As such, this API should be
@@ -889,6 +867,18 @@ export interface ExcalidrawImperativeAPI {
     callback: (payload: OnUserFollowedPayload) => void,
   ) => UnsubscribeCallback;
 }
+
+export type Device = Readonly<{
+  viewport: {
+    isMobile: boolean;
+    isLandscape: boolean;
+  };
+  editor: {
+    isMobile: boolean;
+    canFitSidebar: boolean;
+  };
+  isTouchScreen: boolean;
+}>;
 
 export type FrameNameBounds = {
   x: number;

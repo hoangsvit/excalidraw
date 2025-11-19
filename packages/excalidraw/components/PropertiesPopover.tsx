@@ -4,7 +4,7 @@ import React, { type ReactNode } from "react";
 
 import { isInteractive } from "@excalidraw/common";
 
-import { useEditorInterface } from "./App";
+import { useDevice } from "./App";
 import { Island } from "./Island";
 
 interface PropertiesPopoverProps {
@@ -17,7 +17,6 @@ interface PropertiesPopoverProps {
   onPointerLeave?: React.PointerEventHandler<HTMLDivElement>;
   onFocusOutside?: Popover.PopoverContentProps["onFocusOutside"];
   onPointerDownOutside?: Popover.PopoverContentProps["onPointerDownOutside"];
-  preventAutoFocusOnTouch?: boolean;
 }
 
 export const PropertiesPopover = React.forwardRef<
@@ -35,13 +34,10 @@ export const PropertiesPopover = React.forwardRef<
       onFocusOutside,
       onPointerLeave,
       onPointerDownOutside,
-      preventAutoFocusOnTouch = false,
     },
     ref,
   ) => {
-    const editorInterface = useEditorInterface();
-    const isMobilePortrait =
-      editorInterface.formFactor === "phone" && !editorInterface.isLandscape;
+    const device = useDevice();
 
     return (
       <Popover.Portal container={container}>
@@ -49,26 +45,25 @@ export const PropertiesPopover = React.forwardRef<
           ref={ref}
           className={clsx("focus-visible-none", className)}
           data-prevent-outside-click
-          side={isMobilePortrait ? "bottom" : "right"}
-          align={isMobilePortrait ? "center" : "start"}
+          side={
+            device.editor.isMobile && !device.viewport.isLandscape
+              ? "bottom"
+              : "right"
+          }
+          align={
+            device.editor.isMobile && !device.viewport.isLandscape
+              ? "center"
+              : "start"
+          }
           alignOffset={-16}
           sideOffset={20}
-          collisionBoundary={container ?? undefined}
           style={{
-            zIndex: "var(--zIndex-ui-styles-popup)",
-            marginLeft:
-              editorInterface.formFactor === "phone" ? "0.5rem" : undefined,
+            zIndex: "var(--zIndex-popup)",
           }}
           onPointerLeave={onPointerLeave}
           onKeyDown={onKeyDown}
           onFocusOutside={onFocusOutside}
           onPointerDownOutside={onPointerDownOutside}
-          onOpenAutoFocus={(e) => {
-            // prevent auto-focus on touch devices to avoid keyboard popup
-            if (preventAutoFocusOnTouch && editorInterface.isTouchScreen) {
-              e.preventDefault();
-            }
-          }}
           onCloseAutoFocus={(e) => {
             e.stopPropagation();
             // prevents focusing the trigger

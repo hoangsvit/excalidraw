@@ -478,52 +478,34 @@ export class API {
     });
   };
 
-  static drop = async (items: ({kind: "string", value: string, type: string} | {kind: "file", file: File | Blob, type?: string })[]) => {
-
+  static drop = async (blob: Blob) => {
     const fileDropEvent = createEvent.drop(GlobalTestState.interactiveCanvas);
+    const text = await new Promise<string>((resolve, reject) => {
+      try {
+        const reader = new FileReader();
+        reader.onload = () => {
+          resolve(reader.result as string);
+        };
+        reader.readAsText(blob);
+      } catch (error: any) {
+        reject(error);
+      }
+    });
 
-    const dataTransferFileItems = items.filter(i => i.kind === "file") as {kind: "file", file: File | Blob, type: string }[];
-
-    const files = dataTransferFileItems.map(item => item.file) as File[] & { item: (index: number) => File };
-    // https://developer.mozilla.org/en-US/docs/Web/API/FileList/item
+    const files = [blob] as File[] & { item: (index: number) => File };
     files.item = (index: number) => files[index];
 
     Object.defineProperty(fileDropEvent, "dataTransfer", {
       value: {
-        // https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer/files
         files,
-        // https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer/items
-        items: items.map((item, idx) => {
-          if (item.kind === "string")  {
-            return {
-              kind: "string",
-              type: item.type,
-              // https://developer.mozilla.org/en-US/docs/Web/API/DataTransferItem/getAsString
-              getAsString: (cb: (text: string) => any) => cb(item.value),
-            };
-          }
-          return {
-            kind: "file",
-            type: item.type || item.file.type,
-            // https://developer.mozilla.org/en-US/docs/Web/API/DataTransferItem/getAsFile
-            getAsFile: () => item.file,
-          };
-        }),
-        // https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer/getData
         getData: (type: string) => {
-          return items.find((item) => item.type === "string" && item.type === type) || "";
+          if (type === blob.type) {
+            return text;
+          }
+          return "";
         },
-        // https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer/types
-        types: Array.from(new Set(items.map((item) => item.kind === "file" ? "Files" : item.type))),
       },
     });
-    Object.defineProperty(fileDropEvent, "clientX", {
-      value: 0,
-    });
-    Object.defineProperty(fileDropEvent, "clientY", {
-      value: 0,
-    });
-
     await fireEvent(GlobalTestState.interactiveCanvas, fileDropEvent);
   };
 

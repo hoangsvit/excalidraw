@@ -1,12 +1,11 @@
 import clsx from "clsx";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { KEYS } from "@excalidraw/common";
+import { KEYS, getShortcutKey } from "@excalidraw/common";
 
-import { getShortcutKey } from "../..//shortcut";
 import { useAtom } from "../../editor-jotai";
 import { t } from "../../i18n";
-import { useEditorInterface } from "../App";
+import { useDevice } from "../App";
 import { activeEyeDropperAtom } from "../EyeDropper";
 import { eyeDropperIcon } from "../icons";
 
@@ -30,7 +29,7 @@ export const ColorInput = ({
   colorPickerType,
   placeholder,
 }: ColorInputProps) => {
-  const editorInterface = useEditorInterface();
+  const device = useDevice();
   const [innerValue, setInnerValue] = useState(color);
   const [activeSection, setActiveColorPickerSection] = useAtom(
     activeColorPickerSectionAtom,
@@ -99,7 +98,7 @@ export const ColorInput = ({
         placeholder={placeholder}
       />
       {/* TODO reenable on mobile with a better UX */}
-      {editorInterface.formFactor !== "phone" && (
+      {!device.editor.isMobile && (
         <>
           <div
             style={{

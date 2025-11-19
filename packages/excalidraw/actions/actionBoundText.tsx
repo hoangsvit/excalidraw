@@ -8,7 +8,6 @@ import {
 } from "@excalidraw/common";
 import {
   getOriginalContainerHeightFromCache,
-  isBoundToContainer,
   resetOriginalContainerCache,
   updateOriginalContainerCache,
 } from "@excalidraw/element";
@@ -226,9 +225,7 @@ export const actionWrapTextInContainer = register({
   trackEvent: { category: "element" },
   predicate: (elements, appState, _, app) => {
     const selectedElements = app.scene.getSelectedElements(appState);
-    const someTextElements = selectedElements.some(
-      (el) => isTextElement(el) && !isBoundToContainer(el),
-    );
+    const someTextElements = selectedElements.some((el) => isTextElement(el));
     return selectedElements.length > 0 && someTextElements;
   },
   perform: (elements, appState, _, app) => {
@@ -237,7 +234,7 @@ export const actionWrapTextInContainer = register({
     const containerIds: Mutable<AppState["selectedElementIds"]> = {};
 
     for (const textElement of selectedElements) {
-      if (isTextElement(textElement) && !isBoundToContainer(textElement)) {
+      if (isTextElement(textElement)) {
         const container = newElement({
           type: "rectangle",
           backgroundColor: appState.currentItemBackgroundColor,

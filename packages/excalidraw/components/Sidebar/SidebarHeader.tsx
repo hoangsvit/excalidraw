@@ -2,7 +2,7 @@ import clsx from "clsx";
 import { useContext } from "react";
 
 import { t } from "../../i18n";
-import { useEditorInterface } from "../App";
+import { useDevice } from "../App";
 import { Button } from "../Button";
 import { Tooltip } from "../Tooltip";
 import { CloseIcon, PinIcon } from "../icons";
@@ -16,11 +16,11 @@ export const SidebarHeader = ({
   children?: React.ReactNode;
   className?: string;
 }) => {
-  const editorInterface = useEditorInterface();
+  const device = useDevice();
   const props = useContext(SidebarPropsContext);
 
   const renderDockButton = !!(
-    editorInterface.canFitSidebar && props.shouldRenderDockButton
+    device.editor.canFitSidebar && props.shouldRenderDockButton
   );
 
   return (

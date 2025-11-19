@@ -41,7 +41,7 @@ import { getTooltipDiv, updateTooltipPosition } from "../../components/Tooltip";
 
 import { t } from "../../i18n";
 
-import { useAppProps, useEditorInterface, useExcalidrawAppState } from "../App";
+import { useAppProps, useDevice, useExcalidrawAppState } from "../App";
 import { ToolButton } from "../ToolButton";
 import { FreedrawIcon, TrashIcon, elementLinkIcon } from "../icons";
 import { getSelectedElements } from "../../scene";
@@ -88,7 +88,7 @@ export const Hyperlink = ({
   const elementsMap = scene.getNonDeletedElementsMap();
   const appState = useExcalidrawAppState();
   const appProps = useAppProps();
-  const editorInterface = useEditorInterface();
+  const device = useDevice();
 
   const linkVal = element.link || "";
 
@@ -189,11 +189,11 @@ export const Hyperlink = ({
     if (
       isEditing &&
       inputRef?.current &&
-      !(editorInterface.formFactor === "phone" || editorInterface.isTouchScreen)
+      !(device.viewport.isMobile || device.isTouchScreen)
     ) {
       inputRef.current.select();
     }
-  }, [isEditing, editorInterface.formFactor, editorInterface.isTouchScreen]);
+  }, [isEditing, device.viewport.isMobile, device.isTouchScreen]);
 
   useEffect(() => {
     let timeoutId: number | null = null;
