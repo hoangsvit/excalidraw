@@ -1,12 +1,9 @@
-import { average, pointFrom, type GlobalPoint } from "@excalidraw/math";
-import { getCenterForBounds, getElementBounds } from "@excalidraw/element";
+import { average } from "@excalidraw/math";
 
 import type {
   ExcalidrawBindableElement,
   FontFamilyValues,
   FontString,
-  ExcalidrawElement,
-  ElementsMap,
 } from "@excalidraw/element/types";
 
 import type {
@@ -23,7 +20,6 @@ import {
   ENV,
   FONT_FAMILY,
   getFontFamilyFallbacks,
-  isDarwin,
   WINDOWS_EMOJI_FALLBACK_FONT,
 } from "./constants";
 
@@ -94,7 +90,8 @@ export const isWritableElement = (
   (target instanceof HTMLInputElement &&
     (target.type === "text" ||
       target.type === "number" ||
-      target.type === "password"));
+      target.type === "password" ||
+      target.type === "search"));
 
 export const getFontFamilyString = ({
   fontFamily,
@@ -103,7 +100,6 @@ export const getFontFamilyString = ({
 }) => {
   for (const [fontFamilyString, id] of Object.entries(FONT_FAMILY)) {
     if (id === fontFamily) {
-      // TODO: we should fallback first to generic family names first
       return `${fontFamilyString}${getFontFamilyFallbacks(id)
         .map((x) => `, ${x}`)
         .join("")}`;
@@ -121,6 +117,11 @@ export const getFontString = ({
   fontFamily: FontFamilyValues;
 }) => {
   return `${fontSize}px ${getFontFamilyString({ fontFamily })}` as FontString;
+};
+
+/** executes callback in the frame that's after the current one */
+export const nextAnimationFrame = async (cb: () => any) => {
+  requestAnimationFrame(() => requestAnimationFrame(cb));
 };
 
 export const debounce = <T extends any[]>(
@@ -422,19 +423,6 @@ export const allowFullScreen = () =>
 
 export const exitFullScreen = () => document.exitFullscreen();
 
-export const getShortcutKey = (shortcut: string): string => {
-  shortcut = shortcut
-    .replace(/\bAlt\b/i, "Alt")
-    .replace(/\bShift\b/i, "Shift")
-    .replace(/\b(Enter|Return)\b/i, "Enter");
-  if (isDarwin) {
-    return shortcut
-      .replace(/\bCtrlOrCmd\b/gi, "Cmd")
-      .replace(/\bAlt\b/i, "Option");
-  }
-  return shortcut.replace(/\bCtrlOrCmd\b/gi, "Ctrl");
-};
-
 export const viewportCoordsToSceneCoords = (
   { clientX, clientY }: { clientX: number; clientY: number },
   {
@@ -714,8 +702,8 @@ export const arrayToObject = <T>(
   array: readonly T[],
   groupBy?: (value: T) => string | number,
 ) =>
-  array.reduce((acc, value) => {
-    acc[groupBy ? groupBy(value) : String(value)] = value;
+  array.reduce((acc, value, idx) => {
+    acc[groupBy ? groupBy(value) : idx] = value;
     return acc;
   }, {} as { [key: string]: T });
 
@@ -1239,17 +1227,6 @@ export const escapeDoubleQuotes = (str: string) => {
 
 export const castArray = <T>(value: T | T[]): T[] =>
   Array.isArray(value) ? value : [value];
-
-export const elementCenterPoint = (
-  element: ExcalidrawElement,
-  elementsMap: ElementsMap,
-  xOffset: number = 0,
-  yOffset: number = 0,
-) => {
-  const [x, y] = getCenterForBounds(getElementBounds(element, elementsMap));
-
-  return pointFrom<GlobalPoint>(x + xOffset, y + yOffset);
-};
 
 /** hack for Array.isArray type guard not working with readonly value[] */
 export const isReadonlyArray = (value?: any): value is readonly any[] => {
